@@ -47,7 +47,7 @@ export default function Sidebar() {
           <p className="px-3 pb-2 text-[11px] font-bold uppercase tracking-wider text-white/50">Início</p>
           <div className="space-y-0.5">
             <SidebarLink icon={Home} text="Visão Geral" view="home" />
-            <SidebarLink icon={Network} text="Grafos" view="diagrama" />
+            <SidebarLink icon={Network} text="Memória" view="memoria" />
             <SidebarLink icon={Zap} text="Quick Capture" view="quick-capture" />
           </div>
         </div>

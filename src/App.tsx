@@ -19,9 +19,9 @@ import JournalView from './components/views/JournalView';
 import WeeksView from './components/views/WeeksView';
 import DadosView from './components/views/DadosView';
 
-import DadosRelacional from './components/views/DadosRelacional';
 import DadosAnalyticsCompleto from './components/views/DadosAnalyticsCompleto';
 import ParaOrganizerSkillView from './components/views/ParaOrganizerSkillView';
+import MemoriaView from './components/views/MemoriaView';
 
 function AppContent() {
   const { currentView } = useStore();
@@ -41,7 +41,8 @@ function AppContent() {
       case 'journal': return <JournalView />;
       case 'weeks': return <WeeksView />;
       case 'dados': return <DadosView />;
-      case 'diagrama': return <DadosRelacional />;
+      case 'memoria': return <MemoriaView />;
+      case 'diagrama': return <MemoriaView />;
       case 'analytics-completo': return <DadosAnalyticsCompleto />;
       case 'para-organizer': return <ParaOrganizerSkillView />;
       default: return <HomeView />;

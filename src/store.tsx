@@ -1,4 +1,16 @@
-import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
+import { 
+  KiNode, 
+  KiRelation, 
+  NodeType, 
+  RelationType, 
+  getAllFromStore, 
+  putInStore, 
+  putBatchInStore, 
+  deleteFromStore, 
+  deleteBatchFromStore 
+} from './lib/db';
+import { ParaProposalItem } from './lib/gemini';
 
 export interface Task {
   id: string;
@@ -53,7 +65,7 @@ export interface Resource {
   task?: string | string[];
 }
 
-export type View = 'home' | 'quick-capture' | 'tasks' | 'take-action' | 'projects' | 'areas' | 'recursos' | 'arquivados' | 'inbox' | 'habitos' | 'weeks' | 'dados' | 'diagrama' | 'journal' | 'analytics-completo' | 'para-organizer';
+export type View = 'home' | 'quick-capture' | 'tasks' | 'take-action' | 'projects' | 'areas' | 'recursos' | 'arquivados' | 'inbox' | 'habitos' | 'weeks' | 'dados' | 'diagrama' | 'memoria' | 'journal' | 'analytics-completo' | 'para-organizer';
 
 interface StoreState {
   currentView: View;
@@ -63,12 +75,19 @@ interface StoreState {
   projects: Project[];
   areas: Area[];
   resources: Resource[];
+  nodes: KiNode[];
+  relations: KiRelation[];
+  isDbLoaded: boolean;
   addBatchItems?: (items: {
     tasks?: Partial<Task>[];
     projects?: Partial<Project>[];
     areas?: Partial<Area>[];
     resources?: Partial<Resource>[];
   }) => void;
+  addKiIngestionBatch?: (proposals: ParaProposalItem[], sourceRootPath: string) => Promise<void>;
+  createRelation: (sourceId: string, targetId: string, type: RelationType, author?: 'manual' | 'ai' | 'system') => Promise<void>;
+  approveRelation: (relationId: string) => Promise<void>;
+  deleteRelation: (relationId: string) => Promise<void>;
   addTask: (title: string, area?: string, project?: string, additionalProps?: Partial<Task>) => void;
   addProject: (title: string, desc?: string, area?: string) => void;
   addArea: (name: string, icon?: string) => void;
@@ -1998,13 +2017,246 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
   const [projects, setProjects] = useState<Project[]>(initialProjects);
   const [areas, setAreas] = useState<Area[]>(initialAreas);
   const [resources, setResources] = useState<Resource[]>(initialResources);
+  const [nodes, setNodes] = useState<KiNode[]>([]);
+  const [relations, setRelations] = useState<KiRelation[]>([]);
+  const [isDbLoaded, setIsDbLoaded] = useState(false);
   const [jarvisMessage, setJarvisMessage] = useState<string | null>(null);
   const [isJarvisOpen, setJarvisOpen] = useState(false);
   const [archivedNodeIds, setArchivedNodeIds] = useState<string[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [selectedAreaId, setSelectedAreaId] = useState<string | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(() => window.innerWidth >= 1024);
-  
+
+  // Inicialização e Migração Idempotente do IndexedDB
+  useEffect(() => {
+    async function initDb() {
+      try {
+        const storedNodes = await getAllFromStore<KiNode>('nodes');
+        const storedRelations = await getAllFromStore<KiRelation>('relations');
+
+        if (storedNodes && storedNodes.length > 0) {
+          setNodes(storedNodes);
+          setRelations(storedRelations || []);
+
+          const loadedTasks: Task[] = [];
+          const loadedProjects: Project[] = [];
+          const loadedAreas: Area[] = [];
+          const loadedResources: Resource[] = [];
+          const loadedArchivedIds: string[] = [];
+
+          for (const node of storedNodes) {
+            if (node.archived) loadedArchivedIds.push(node.id);
+
+            if (node.type === 'task') {
+              loadedTasks.push({
+                id: node.id,
+                title: node.title,
+                status: node.metadata?.status || (node.archived ? 'arquivadas' : 'not-started'),
+                area: node.metadata?.area || 'Inbox',
+                project: node.metadata?.project,
+                executionDate: node.metadata?.executionDate || '-',
+                deadline: node.metadata?.deadline || '-',
+                priority: node.metadata?.priority || 'P 3',
+                naipe: node.metadata?.naipe,
+                day: node.metadata?.day,
+                link: node.metadata?.link,
+                battleTokens: node.metadata?.battleTokens || '0',
+                subAreas: node.metadata?.subAreas,
+              });
+            } else if (node.type === 'project') {
+              loadedProjects.push({
+                id: node.id,
+                title: node.title,
+                desc: node.metadata?.desc || '',
+                progress: node.metadata?.progress || 0,
+                area: node.metadata?.area || 'Inbox',
+                icon: node.metadata?.icon || '📂',
+                due: node.metadata?.due || '-',
+                status: node.metadata?.status || 'active',
+                executionDate: node.metadata?.executionDate || '-',
+                deadline: node.metadata?.deadline || '-',
+              });
+            } else if (node.type === 'area') {
+              loadedAreas.push({
+                id: node.id,
+                name: node.title,
+                icon: node.metadata?.icon || '📁',
+                count: node.metadata?.count || 0,
+              });
+            } else if (node.type === 'resource' || node.type === 'archive') {
+              loadedResources.push({
+                id: node.id,
+                title: node.title,
+                link: node.metadata?.link,
+                area: node.metadata?.area || (node.type === 'archive' ? 'Arquivados' : 'Inbox'),
+                project: node.metadata?.project,
+                task: node.metadata?.task,
+              });
+            }
+          }
+
+          setTasks(loadedTasks.length ? loadedTasks : initialTasks);
+          setProjects(loadedProjects.length ? loadedProjects : initialProjects);
+          setAreas(loadedAreas.length ? loadedAreas : initialAreas);
+          setResources(loadedResources.length ? loadedResources : initialResources);
+          setArchivedNodeIds(loadedArchivedIds);
+        } else {
+          // Migração Inicial Idempotente
+          const newNodes: KiNode[] = [];
+          const newRelations: KiRelation[] = [];
+
+          initialAreas.forEach(a => {
+            newNodes.push({
+              id: a.id,
+              type: 'area',
+              title: a.name,
+              metadata: { icon: a.icon, count: a.count },
+              archived: false,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            });
+          });
+
+          initialProjects.forEach(p => {
+            newNodes.push({
+              id: p.id,
+              type: 'project',
+              title: p.title,
+              metadata: {
+                desc: p.desc,
+                progress: p.progress,
+                area: p.area,
+                icon: p.icon,
+                due: p.due,
+                status: p.status,
+                executionDate: p.executionDate,
+                deadline: p.deadline,
+              },
+              archived: false,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            });
+
+            if (p.area) {
+              const targetArea = initialAreas.find(a => a.name === p.area || a.id === p.area);
+              if (targetArea) {
+                newRelations.push({
+                  id: `rel-${p.id}-${targetArea.id}`,
+                  sourceId: p.id,
+                  targetId: targetArea.id,
+                  type: 'belongs_to',
+                  weight: 1,
+                  confidence: 100,
+                  author: 'system',
+                  approved: true,
+                  createdAt: new Date().toISOString(),
+                });
+              }
+            }
+          });
+
+          initialTasks.forEach(t => {
+            const isArchived = t.status === 'arquivadas';
+            newNodes.push({
+              id: t.id,
+              type: 'task',
+              title: t.title,
+              metadata: {
+                status: t.status,
+                area: t.area,
+                project: t.project,
+                executionDate: t.executionDate,
+                deadline: t.deadline,
+                priority: t.priority,
+                naipe: t.naipe,
+                day: t.day,
+                link: t.link,
+                battleTokens: t.battleTokens,
+                subAreas: t.subAreas,
+              },
+              archived: isArchived,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            });
+
+            if (t.project) {
+              const targetProj = initialProjects.find(p => p.title === t.project || p.id === t.project);
+              if (targetProj) {
+                newRelations.push({
+                  id: `rel-${t.id}-${targetProj.id}`,
+                  sourceId: t.id,
+                  targetId: targetProj.id,
+                  type: 'task_for',
+                  weight: 1,
+                  confidence: 100,
+                  author: 'system',
+                  approved: true,
+                  createdAt: new Date().toISOString(),
+                });
+              }
+            } else if (t.area) {
+              const targetArea = initialAreas.find(a => a.name === t.area || a.id === t.area);
+              if (targetArea) {
+                newRelations.push({
+                  id: `rel-${t.id}-${targetArea.id}`,
+                  sourceId: t.id,
+                  targetId: targetArea.id,
+                  type: 'belongs_to',
+                  weight: 1,
+                  confidence: 100,
+                  author: 'system',
+                  approved: true,
+                  createdAt: new Date().toISOString(),
+                });
+              }
+            }
+          });
+
+          initialResources.forEach(r => {
+            newNodes.push({
+              id: r.id,
+              type: 'resource',
+              title: r.title,
+              metadata: { link: r.link, area: r.area, project: r.project, task: r.task },
+              archived: false,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            });
+
+            const areaName = Array.isArray(r.area) ? r.area[0] : r.area;
+            if (areaName) {
+              const targetArea = initialAreas.find(a => a.name === areaName || a.id === areaName);
+              if (targetArea) {
+                newRelations.push({
+                  id: `rel-${r.id}-${targetArea.id}`,
+                  sourceId: r.id,
+                  targetId: targetArea.id,
+                  type: 'supports',
+                  weight: 1,
+                  confidence: 100,
+                  author: 'system',
+                  approved: true,
+                  createdAt: new Date().toISOString(),
+                });
+              }
+            }
+          });
+
+          await putBatchInStore('nodes', newNodes);
+          await putBatchInStore('relations', newRelations);
+          setNodes(newNodes);
+          setRelations(newRelations);
+        }
+      } catch (err) {
+        console.error('Erro ao carregar do IndexedDB:', err);
+      } finally {
+        setIsDbLoaded(true);
+      }
+    }
+
+    initDb();
+  }, []);
+
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth < 1024) {
@@ -2018,9 +2270,18 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const toggleSidebar = () => setIsSidebarOpen(prev => !prev);
-  
+
   const toggleArchiveNode = (id: string) => {
-    setArchivedNodeIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+    const isNowArchived = !archivedNodeIds.includes(id);
+    setArchivedNodeIds(prev => isNowArchived ? [...prev, id] : prev.filter(i => i !== id));
+    setNodes(prev => prev.map(n => {
+      if (n.id === id) {
+        const updated = { ...n, archived: isNowArchived, updatedAt: new Date().toISOString() };
+        putInStore('nodes', updated).catch(console.error);
+        return updated;
+      }
+      return n;
+    }));
   };
 
   const deleteNodes = (ids: string[]) => {
@@ -2029,13 +2290,18 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
     setAreas(prev => prev.filter(a => !ids.includes(a.id)));
     setResources(prev => prev.filter(r => !ids.includes(r.id)));
     setArchivedNodeIds(prev => prev.filter(id => !ids.includes(id)));
+    setNodes(prev => prev.filter(n => !ids.includes(n.id)));
+    setRelations(prev => prev.filter(r => !ids.includes(r.sourceId) && !ids.includes(r.targetId)));
+
+    deleteBatchFromStore('nodes', ids).catch(console.error);
   };
 
   const addTask = (title: string, area: string = "Inbox", project?: string, additionalProps?: Partial<Task>) => {
     if (!title.trim()) return;
-    setTasks(prev => [{
-      id: `tk-${Date.now()}`,
-      title,
+    const newId = `tk-${Date.now()}`;
+    const newTask: Task = {
+      id: newId,
+      title: title.trim(),
       status: 'not-started',
       area,
       project,
@@ -2043,66 +2309,212 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
       deadline: "-",
       priority: additionalProps?.priority || 'P 3',
       naipe: additionalProps?.naipe || '♦️',
-      ...additionalProps
-    }, ...prev]);
+      ...additionalProps,
+    };
+
+    setTasks(prev => [newTask, ...prev]);
+
+    const kiNode: KiNode = {
+      id: newId,
+      type: 'task',
+      title: newTask.title,
+      metadata: { ...newTask },
+      archived: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    setNodes(prev => [kiNode, ...prev]);
+    putInStore('nodes', kiNode).catch(console.error);
+
+    if (project) {
+      const parentProj = projects.find(p => p.title === project || p.id === project);
+      if (parentProj) {
+        createRelation(newId, parentProj.id, 'task_for', 'manual').catch(console.error);
+      }
+    }
   };
 
   const addProject = (title: string, desc: string = "", area: string = "Inbox") => {
     if (!title.trim()) return;
-    setProjects(prev => [{
-      id: `pr-${Date.now()}`,
-      title,
+    const newId = `pr-${Date.now()}`;
+    const newProj: Project = {
+      id: newId,
+      title: title.trim(),
       desc,
       progress: 0,
       area,
       due: "-",
-      status: 'active'
-    }, ...prev]);
+      status: 'active',
+    };
+    setProjects(prev => [newProj, ...prev]);
+
+    const kiNode: KiNode = {
+      id: newId,
+      type: 'project',
+      title: newProj.title,
+      metadata: { ...newProj },
+      archived: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    setNodes(prev => [kiNode, ...prev]);
+    putInStore('nodes', kiNode).catch(console.error);
+
+    if (area && area !== 'Inbox') {
+      const parentArea = areas.find(a => a.name === area || a.id === area);
+      if (parentArea) {
+        createRelation(newId, parentArea.id, 'belongs_to', 'manual').catch(console.error);
+      }
+    }
   };
 
   const addArea = (name: string, icon: string = "📁") => {
     if (!name.trim()) return;
-    setAreas(prev => [{
-      id: `ar-${Date.now()}`,
-      name,
+    const newId = `ar-${Date.now()}`;
+    const newArea: Area = {
+      id: newId,
+      name: name.trim(),
       icon,
-      count: 0
-    }, ...prev]);
+      count: 0,
+    };
+    setAreas(prev => [newArea, ...prev]);
+
+    const kiNode: KiNode = {
+      id: newId,
+      type: 'area',
+      title: newArea.name,
+      metadata: { ...newArea },
+      archived: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    setNodes(prev => [kiNode, ...prev]);
+    putInStore('nodes', kiNode).catch(console.error);
   };
 
   const addResource = (title: string, area?: string, project?: string, task?: string) => {
     if (!title.trim()) return;
-    setResources(prev => [{
-      id: `rc-${Date.now()}`,
-      title,
+    const newId = `rc-${Date.now()}`;
+    const newResource: Resource = {
+      id: newId,
+      title: title.trim(),
       area,
       project,
-      task
-    }, ...prev]);
+      task,
+    };
+    setResources(prev => [newResource, ...prev]);
+
+    const kiNode: KiNode = {
+      id: newId,
+      type: 'resource',
+      title: newResource.title,
+      metadata: { ...newResource },
+      archived: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    setNodes(prev => [kiNode, ...prev]);
+    putInStore('nodes', kiNode).catch(console.error);
   };
 
   const editArea = (id: string, field: keyof Area, value: any) => {
-    setAreas(prev => prev.map(a => a.id === id ? { ...a, [field]: value } : a));
+    setAreas(prev => prev.map(a => {
+      if (a.id === id) {
+        const updated = { ...a, [field]: value };
+        putInStore('nodes', {
+          id,
+          type: 'area' as NodeType,
+          title: updated.name,
+          metadata: { ...updated },
+          archived: archivedNodeIds.includes(id),
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }).catch(console.error);
+        return updated;
+      }
+      return a;
+    }));
   };
 
   const editResource = (id: string, field: keyof Resource, value: any) => {
-    setResources(prev => prev.map(r => r.id === id ? { ...r, [field]: value } : r));
+    setResources(prev => prev.map(r => {
+      if (r.id === id) {
+        const updated = { ...r, [field]: value };
+        putInStore('nodes', {
+          id,
+          type: 'resource' as NodeType,
+          title: updated.title,
+          metadata: { ...updated },
+          archived: archivedNodeIds.includes(id),
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }).catch(console.error);
+        return updated;
+      }
+      return r;
+    }));
   };
 
   const editTask = (id: string, field: keyof Task, value: any) => {
-    setTasks(prev => prev.map(t => t.id === id ? { ...t, [field]: value } : t));
+    setTasks(prev => prev.map(t => {
+      if (t.id === id) {
+        const updated = { ...t, [field]: value };
+        putInStore('nodes', {
+          id,
+          type: 'task' as NodeType,
+          title: updated.title,
+          metadata: { ...updated },
+          archived: updated.status === 'arquivadas',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }).catch(console.error);
+        return updated;
+      }
+      return t;
+    }));
   };
 
   const editProject = (id: string, field: keyof Project, value: any) => {
-    setProjects(prev => prev.map(p => p.id === id ? { ...p, [field]: value } : p));
+    setProjects(prev => prev.map(p => {
+      if (p.id === id) {
+        const updated = { ...p, [field]: value };
+        putInStore('nodes', {
+          id,
+          type: 'project' as NodeType,
+          title: updated.title,
+          metadata: { ...updated },
+          archived: archivedNodeIds.includes(id),
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }).catch(console.error);
+        return updated;
+      }
+      return p;
+    }));
   };
 
   const toggleTask = (id: string) => {
-    setTasks(prev => prev.map(t => t.id === id ? { ...t, status: t.status === 'done' ? 'not-started' : 'done' } : t));
+    setTasks(prev => prev.map(t => {
+      if (t.id === id) {
+        const nextStatus = t.status === 'done' ? 'not-started' : 'done';
+        const updated = { ...t, status: nextStatus as Task['status'] };
+        putInStore('nodes', {
+          id,
+          type: 'task' as NodeType,
+          title: updated.title,
+          metadata: { ...updated },
+          archived: false,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }).catch(console.error);
+        return updated;
+      }
+      return t;
+    }));
   };
 
   const deleteTask = (id: string) => {
-    setTasks(prev => prev.filter(t => t.id !== id));
+    deleteNodes([id]);
   };
 
   const toggleHabit = (id: string, dayIndex: number) => {
@@ -2115,6 +2527,191 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
       }
       return h;
     }));
+  };
+
+  const createRelation = async (
+    sourceId: string,
+    targetId: string,
+    type: RelationType,
+    author: 'manual' | 'ai' | 'system' = 'manual'
+  ) => {
+    const relId = `rel-${sourceId}-${targetId}-${type}`;
+    const newRel: KiRelation = {
+      id: relId,
+      sourceId,
+      targetId,
+      type,
+      weight: 1,
+      confidence: author === 'manual' ? 100 : 85,
+      author,
+      approved: author !== 'ai',
+      createdAt: new Date().toISOString(),
+    };
+
+    setRelations(prev => {
+      const filtered = prev.filter(r => r.id !== relId);
+      return [...filtered, newRel];
+    });
+    await putInStore('relations', newRel);
+  };
+
+  const approveRelation = async (relationId: string) => {
+    setRelations(prev => prev.map(r => {
+      if (r.id === relationId) {
+        const updated = { ...r, approved: true };
+        putInStore('relations', updated).catch(console.error);
+        return updated;
+      }
+      return r;
+    }));
+  };
+
+  const deleteRelation = async (relationId: string) => {
+    setRelations(prev => prev.filter(r => r.id !== relationId));
+    await deleteFromStore('relations', relationId);
+  };
+
+  const addKiIngestionBatch = async (proposals: ParaProposalItem[], sourceRootPath: string) => {
+    const nodesToPersist: KiNode[] = [];
+    const relationsToPersist: KiRelation[] = [];
+
+    const newTasks: Task[] = [];
+    const newProjects: Project[] = [];
+    const newAreas: Area[] = [];
+    const newResources: Resource[] = [];
+
+    for (const item of proposals) {
+      const nodeType: NodeType = item.para;
+      const kiNode: KiNode = {
+        id: item.id,
+        type: nodeType,
+        title: item.title,
+        metadata: {
+          original_file: item.name,
+          relative_path: item.relativePath,
+          mime_type: item.mimeType,
+          size: item.size,
+          modified: item.modified,
+          sha256: item.sha256,
+          summary: item.summary,
+          tags: item.tags,
+          actions: item.actions,
+          parent: item.parent,
+          para: item.para,
+          confidence: item.confidence,
+        },
+        archived: item.para === 'archive',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      nodesToPersist.push(kiNode);
+
+      // Markdown Twin
+      if (item.markdown) {
+        await putInStore('markdown_twins', {
+          id: `md-${item.id}`,
+          nodeId: item.id,
+          title: item.title,
+          filename: `${item.title.replace(/[^a-zA-Z0-9-_ ]/g, '').trim().slice(0, 80) || item.id}.md`,
+          content: item.markdown,
+          createdAt: new Date().toISOString(),
+        });
+      }
+
+      // Source Asset
+      await putInStore('source_assets', {
+        id: `src-${item.id}`,
+        name: item.name,
+        relativePath: item.relativePath,
+        type: item.type,
+        mimeType: item.mimeType,
+        size: item.size,
+        modified: item.modified,
+        sha256: item.sha256,
+        createdAt: new Date().toISOString(),
+      });
+
+      // Aprovação
+      await putInStore('approval_events', {
+        id: `appr-${item.id}-${Date.now()}`,
+        entityType: 'node',
+        entityId: item.id,
+        action: 'approved',
+        timestamp: new Date().toISOString(),
+      });
+
+      if (item.para === 'area') {
+        newAreas.push({ id: item.id, name: item.title, icon: '📁', count: 0 });
+      } else if (item.para === 'project') {
+        newProjects.push({
+          id: item.id,
+          title: item.title,
+          desc: item.summary,
+          progress: 0,
+          area: item.parent || 'Inbox',
+          due: '-',
+          status: 'active',
+        });
+      } else if (item.para === 'resource' || item.para === 'archive') {
+        newResources.push({
+          id: item.id,
+          title: item.title,
+          area: item.parent || (item.para === 'archive' ? 'Arquivados' : 'Inbox'),
+        });
+      }
+
+      // Tarefas derivadas das ações
+      if (item.actions && item.actions.length > 0) {
+        item.actions.forEach((act, actIdx) => {
+          const tId = `tk-${item.id}-${actIdx}`;
+          const taskObj: Task = {
+            id: tId,
+            title: act,
+            status: 'not-started',
+            area: item.parent || 'Inbox',
+            project: item.para === 'project' ? item.title : undefined,
+            executionDate: 'Hoje',
+            deadline: '-',
+            priority: 'P 2',
+            battleTokens: '10',
+          };
+          newTasks.push(taskObj);
+
+          const taskNode: KiNode = {
+            id: tId,
+            type: 'task',
+            title: act,
+            metadata: { ...taskObj },
+            archived: false,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          };
+          nodesToPersist.push(taskNode);
+
+          relationsToPersist.push({
+            id: `rel-${tId}-${item.id}`,
+            sourceId: tId,
+            targetId: item.id,
+            type: 'task_for',
+            weight: 1,
+            confidence: 100,
+            author: 'system',
+            approved: true,
+            createdAt: new Date().toISOString(),
+          });
+        });
+      }
+    }
+
+    await putBatchInStore('nodes', nodesToPersist);
+    await putBatchInStore('relations', relationsToPersist);
+
+    setNodes(prev => [...nodesToPersist, ...prev]);
+    setRelations(prev => [...relationsToPersist, ...prev]);
+    setAreas(prev => [...newAreas, ...prev]);
+    setProjects(prev => [...newProjects, ...prev]);
+    setResources(prev => [...newResources, ...prev]);
+    setTasks(prev => [...newTasks, ...prev]);
   };
 
   const addBatchItems = (items: {
@@ -2196,24 +2793,9 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const processJarvisCommand = (command: string) => {
-    // Simulating the Phi-3 Jarvis processing
+    // Processamento do Jarvis - gerenciado no JarvisChat com conexão Gemini
     setJarvisOpen(true);
-    setJarvisMessage(`Processando: "${command}"...`);
-
-    setTimeout(() => {
-      let response = "";
-      if (command.toLowerCase().includes("lab1")) {
-        addTask("Estudar X para Lab1", "Estudo");
-        addTask("Estudar Y para Lab1", "Estudo");
-        addTask("Estudar Z para Lab1", "Estudo");
-        setProjects(prev => [{id: Date.now().toString(), title: "Prova Lab1", desc: "Revisar conteúdos e adiantar tarefas", progress: 0, area: "Estudo", due: "Em breve", status: "active"}, ...prev]);
-        response = 'Projeto "Prova Lab1" e tarefas de estudo criadas no PARA e alocadas para sua semana. Foco total!';
-      } else {
-        addTask(command, "Inbox");
-        response = `Capturado no Inbox! Tarefa: "${command}"`;
-      }
-      setJarvisMessage(response);
-    }, 1200);
+    setJarvisMessage(command);
   };
 
   return (

@@ -1,60 +1,596 @@
 import React, { useMemo, useRef, useState } from 'react';
 import JSZip from 'jszip';
-import { GoogleGenAI } from '@google/genai';
-import { createWorker } from 'tesseract.js';
-import { Check, CheckCircle2, Download, FileCode2, FileImage, FileText, Folder, FolderUp, Loader2, Pencil, Play, ShieldCheck, Sparkles } from 'lucide-react';
+import { 
+  Check, 
+  CheckCircle2, 
+  Download, 
+  FileCode2, 
+  FileImage, 
+  FileText, 
+  Folder, 
+  FolderUp, 
+  Loader2, 
+  Pencil, 
+  Play, 
+  ShieldCheck, 
+  Sparkles,
+  AlertCircle,
+  RotateCcw,
+  X,
+  FileSpreadsheet
+} from 'lucide-react';
 import { useStore } from '../../store';
+import { 
+  ExtractedFileItem, 
+  processSingleFile, 
+  processZipFile, 
+  formatBytes, 
+  MAX_FILE_BYTES 
+} from '../../lib/extractor';
+import { 
+  ParaCategory, 
+  ParaProposalItem, 
+  analyzeBatchWithGemini, 
+  buildMarkdownTwin, 
+  localFallbackProposal 
+} from '../../lib/gemini';
 import { getGeminiCredential } from '../../lib/credentials';
 
-type Para = 'project' | 'area' | 'resource' | 'archive';
-type SourceItem = { id: string; name: string; relativePath: string; type: string; size: number; excerpt: string; modified: string; selected: boolean; kind: 'document' | 'code' | 'image' | 'binary' };
-type Proposal = SourceItem & { para: Para; title: string; parent: string; summary: string; tags: string[]; actions: string[]; confidence: number; markdown: string };
-const textExtensions = new Set(['md', 'txt', 'csv', 'json', 'yaml', 'yml', 'xml', 'html', 'htm', 'sql', 'js', 'ts', 'tsx', 'jsx', 'py', 'ipynb', 'doc']);
-const codeExtensions = new Set(['js', 'ts', 'tsx', 'jsx', 'py', 'ipynb', 'sql', 'html', 'htm']);
-const imageExtensions = new Set(['png', 'jpg', 'jpeg', 'gif', 'webp', 'heic', 'svg']);
-const ignoredFolders = new Set(['__macosx', '.venv', 'venv', 'node_modules', '__pycache__', '.git']);
-const paraLabel: Record<Para, string> = { project: 'Projeto', area: 'Área', resource: 'Recurso', archive: 'Arquivado' };
-const intakeKey = 'me_knowledge_intake_v1';
-const maxFileBytes = 100 * 1024 * 1024;
-function extension(name: string) { return name.split('.').pop()?.toLowerCase() || 'arquivo'; }
-function humanSize(bytes: number) { return bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`; }
-function cleanJson(value: string) { return value.replace(/^```json\s*/i, '').replace(/```$/i, '').trim(); }
-function parseGeminiJson(value: string) { const cleaned = cleanJson(value); const start = cleaned.indexOf('{'); const end = cleaned.lastIndexOf('}'); if (start < 0 || end < start) throw new Error('O Gemini não retornou uma proposta completa.'); return JSON.parse(cleaned.slice(start, end + 1)); }
-function limit(value: string, max = 2200) { return value.length <= max ? value : `${value.slice(0, max - 1).trimEnd()}…`; }
-function isNoise(path: string) { const parts = path.split('/'); const leaf = parts.at(-1) || ''; return parts.some(part => ignoredFolders.has(part.toLowerCase())) || leaf === '.DS_Store' || leaf.startsWith('._'); }
-function itemKind(path: string): SourceItem['kind'] { const ext = extension(path); return imageExtensions.has(ext) ? 'image' : codeExtensions.has(ext) ? 'code' : textExtensions.has(ext) || ['pdf', 'docx', 'xlsx'].includes(ext) ? 'document' : 'binary'; }
-function baseItem(name: string, size: number, excerpt: string, modified: string): SourceItem { const kind = itemKind(name); return { id: crypto.randomUUID(), name: name.split('/').at(-1) || name, relativePath: name, type: extension(name).toUpperCase(), size, excerpt, modified, selected: kind !== 'image' && kind !== 'binary', kind }; }
-async function extractPdfText(file: Blob) {
-  const pdfjs = await import('pdfjs-dist');
-  pdfjs.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString();
-  const pdf = await pdfjs.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise;
-  const pageCount = Math.min(pdf.numPages, 25); let text = '';
-  for (let pageNo = 1; pageNo <= pageCount; pageNo += 1) { const page = await pdf.getPage(pageNo); const content = await page.getTextContent(); text += `${content.items.map((item: any) => item.str || '').join(' ')}\n`; }
-  if (text.trim().length >= 80) return limit(text.trim(), 8000);
-  const worker = await createWorker('por+eng');
-  try { for (let pageNo = 1; pageNo <= Math.min(pdf.numPages, 10); pageNo += 1) { const page = await pdf.getPage(pageNo); const viewport = page.getViewport({ scale: 1.5 }); const canvas = document.createElement('canvas'); canvas.width = Math.ceil(viewport.width); canvas.height = Math.ceil(viewport.height); const context = canvas.getContext('2d'); if (!context) continue; await page.render({ canvas, canvasContext: context, viewport }).promise; const result = await worker.recognize(canvas); text += `${result.data.text}\n`; } return limit(text.trim(), 8000); } finally { await worker.terminate(); }
-}
-function fallback(item: SourceItem): Proposal { const lower = item.name.toLowerCase(); const para: Para = lower.includes('contrato') ? 'archive' : lower.includes('projeto') ? 'project' : 'resource'; return { ...item, para, title: item.name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' '), parent: '', summary: 'Proposta gerada localmente. Conecte a chave Gemini para classificação semântica.', tags: [], actions: [], confidence: 35, markdown: '' }; }
-function buildMarkdown(item: Proposal, sourcePath: string) { const metadata = [`id: ${item.id}`, `title: ${item.title}`, `original_file: ${item.relativePath}`, `source_path: ${sourcePath || 'não informado'}`, `type: ${item.type}`, `modified: ${item.modified}`, `para: ${item.para}`, `parent: ${item.parent || 'sem vínculo'}`, `tags: [${item.tags.map(tag => JSON.stringify(tag)).join(', ')}]`].join('\n'); const body = [`# ${item.title}`, '', item.summary, item.actions.length ? `## Próximas ações\n${item.actions.map(action => `- [ ] ${action}`).join('\n')}` : ''].filter(Boolean).join('\n\n'); return `---\n${metadata}\n---\n\n${limit(body)}`; }
+const PARA_LABELS: Record<ParaCategory, string> = {
+  project: 'Projeto',
+  area: 'Área',
+  resource: 'Recurso',
+  archive: 'Arquivado',
+};
 
 export default function DadosIngestao() {
-  const inputRef = useRef<HTMLInputElement>(null); const { addBatchItems } = useStore();
-  const [items, setItems] = useState<SourceItem[]>([]); const [proposals, setProposals] = useState<Proposal[]>([]); const [sourcePath, setSourcePath] = useState(''); const [ignoredCount, setIgnoredCount] = useState(0); const [folderNames, setFolderNames] = useState<Record<string, string>>({}); const [editingFolder, setEditingFolder] = useState<string | null>(null);
-  const [state, setState] = useState<'idle' | 'reading' | 'analyzing' | 'ready' | 'saved' | 'error'>('idle'); const [message, setMessage] = useState('Selecione arquivos ou um ZIP. Nada é movido nem enviado antes da análise.');
-  const selected = items.filter(item => item.selected); const folders = useMemo(() => items.reduce<Record<string, SourceItem[]>>((groups, item) => { const folder = item.relativePath.split('/').slice(0, -1).join('/') || 'Arquivos na raiz'; (groups[folder] ||= []).push(item); return groups; }, {}), [items]);
-  const readFile = async (file: File): Promise<{ items: SourceItem[]; ignored: number }> => { if (extension(file.name) !== 'zip') { const ext = extension(file.name); const excerpt = textExtensions.has(ext) ? limit(await file.text(), 8000) : ext === 'pdf' ? await extractPdfText(file) : ''; return { items: [baseItem(file.name, file.size, excerpt, new Date(file.lastModified).toISOString().slice(0, 10))], ignored: 0 }; } const zip = await JSZip.loadAsync(file); const entries = Object.values(zip.files).filter(entry => !entry.dir); const useful = entries.filter(entry => !isNoise(entry.name)).slice(0, 80); const next = await Promise.all(useful.map(async entry => { const ext = extension(entry.name); const excerpt = textExtensions.has(ext) ? limit(await entry.async('text'), 8000) : ext === 'pdf' ? await extractPdfText(await entry.async('blob')) : ''; return baseItem(entry.name, 0, excerpt, new Date().toISOString().slice(0, 10)); })); return { items: next, ignored: entries.length - useful.length }; };
-  const onFiles = async (event: React.ChangeEvent<HTMLInputElement>) => { const files = Array.from(event.target.files || []) as File[]; if (!files.length) return; const oversized = files.find(file => file.size > maxFileBytes); if (oversized) { setState('error'); setMessage(`“${oversized.name}” ultrapassa o limite de 100 MB.`); return; } setState('reading'); setMessage('Lendo a estrutura e o texto dos arquivos…'); try { const batches = await Promise.all(files.slice(0, 20).map(readFile)); const next = batches.flatMap(batch => batch.items); const ignored = batches.reduce((total, batch) => total + batch.ignored, 0); setItems(next); setIgnoredCount(ignored); setFolderNames({}); setEditingFolder(null); setProposals([]); setState('idle'); setMessage(`${next.length} arquivo(s) útil(eis) encontrado(s). Escolha o que vai para o Gemini.`); } catch { setState('error'); setMessage('Não foi possível ler um dos arquivos. Confirme que o PDF não está protegido e tem até 100 MB.'); } };
-  const toggleItem = (id: string) => setItems(current => current.map(item => item.id === id ? { ...item, selected: !item.selected } : item));
-  const setSelection = (mode: 'all' | 'recommended' | 'document' | 'code' | 'none') => setItems(current => current.map(item => ({ ...item, selected: mode === 'all' ? true : mode === 'recommended' ? item.kind === 'document' || item.kind === 'code' : item.kind === mode })));
-  const analyze = async () => { if (!selected.length) { setState('error'); setMessage('Marque ao menos um arquivo para analisar.'); return; } if (selected.length > 20) { setState('error'); setMessage('Para uma análise confiável, selecione até 20 arquivos por vez.'); return; } const credential = getGeminiCredential(); if (!credential.apiKey) { setState('error'); setMessage('Salve e teste a chave Gemini em Dados → Credenciais antes de analisar.'); return; } setState('analyzing'); setMessage(`Analisando ${selected.length} arquivo(s) selecionado(s)…`); const batches = Array.from({ length: Math.ceil(selected.length / 8) }, (_, index) => selected.slice(index * 8, index * 8 + 8)); const promptFor = (batch: SourceItem[]) => `Você organiza um segundo cérebro pelo método PARA. Retorne SOMENTE JSON válido, completo e sem markdown: {"items":[{"id":"","para":"project|area|resource|archive","title":"","parent":"","summary":"até 160 caracteres","tags":["máximo 3"],"actions":["máximo 2"],"confidence":0}]}. Não invente fatos. Itens: ${JSON.stringify(batch.map(item => ({ id: item.id, name: item.relativePath, type: item.type, excerpt: limit(item.excerpt, 500) })))} `; try { const ai = new GoogleGenAI({ apiKey: credential.apiKey }); const responses = await Promise.all(batches.map(async batch => { const result = await ai.models.generateContent({ model: credential.model, contents: promptFor(batch), config: { temperature: 0.2, maxOutputTokens: 4096, responseMimeType: 'application/json' } }); return (parseGeminiJson(result.text || '{}') as { items?: Array<Partial<Proposal>> }).items || []; })); const byId = new Map(responses.flat().map(item => [item.id, item])); const next = selected.map(item => { const aiItem = byId.get(item.id); const base = aiItem?.para && ['project', 'area', 'resource', 'archive'].includes(aiItem.para) ? { ...fallback(item), ...aiItem, para: aiItem.para as Para } : fallback(item); return { ...base, tags: Array.isArray(base.tags) ? base.tags.slice(0, 3) : [], actions: Array.isArray(base.actions) ? base.actions.slice(0, 2) : [], confidence: Number(base.confidence) || 0, markdown: '' } as Proposal; }).map(item => ({ ...item, markdown: buildMarkdown(item, sourcePath) })); setProposals(next); setState('ready'); setMessage('Proposta pronta. Revise antes de integrar ao Knowledge Intake.'); } catch (error) { const detail = error instanceof Error ? error.message : String(error); setState('error'); setMessage(detail.includes('429') ? 'A cota Gemini foi atingida. Tente novamente depois.' : `A análise falhou: ${detail.slice(0, 140)}`); } };
-  const updateProposal = (id: string, patch: Partial<Proposal>) => setProposals(current => current.map(item => { const next = { ...item, ...patch } as Proposal; return { ...next, markdown: buildMarkdown(next, sourcePath) }; }));
-  const integrate = () => { const saved = JSON.parse(localStorage.getItem(intakeKey) || '[]'); localStorage.setItem(intakeKey, JSON.stringify([...saved, ...proposals.map(({ markdown, ...item }) => ({ ...item, markdown, createdAt: new Date().toISOString() }))])); addBatchItems?.({ areas: proposals.filter(item => item.para === 'area').map(item => ({ name: item.title, icon: '◌' })), projects: proposals.filter(item => item.para === 'project').map(item => ({ title: item.title, desc: item.summary, area: item.parent || 'Inbox', status: 'active' as const })), resources: proposals.filter(item => item.para === 'resource' || item.para === 'archive').map(item => ({ title: item.title, area: item.parent || (item.para === 'archive' ? 'Arquivados' : 'Inbox') })), tasks: proposals.flatMap(item => item.actions.map(title => ({ title, area: item.parent || 'Inbox', project: item.para === 'project' ? item.title : undefined, priority: 'P 2', battleTokens: '0', status: 'not-started' as const }))) }); setState('saved'); setMessage('Aprovado: registros e MDs foram adicionados ao Knowledge Intake deste navegador.'); };
-  const download = async () => { const zip = new JSZip(); proposals.forEach(item => zip.file(`${item.title.replace(/[^a-z0-9-_ ]/gi, '').slice(0, 80) || item.id}.md`, item.markdown)); const blob = await zip.generateAsync({ type: 'blob' }); const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = 'para-organizer-md.zip'; link.click(); URL.revokeObjectURL(url); };
-  const ItemIcon = ({ item }: { item: SourceItem }) => item.kind === 'image' ? <FileImage className="h-4 w-4 text-forest" /> : item.kind === 'code' ? <FileCode2 className="h-4 w-4 text-forest" /> : <FileText className="h-4 w-4 text-forest" />;
-  return <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 pb-10">
-    <div className="rounded-2xl border border-forest/10 bg-white p-6 shadow-sm"><div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between"><div><div className="flex items-center gap-2"><Sparkles className="h-5 w-5 text-forest" /><h2 className="text-[18px] font-bold text-ink">Ingestão PARA</h2></div><p className="mt-1 text-[13px] text-ink/60">Arquivo ou ZIP → seleção → Gemini → proposta revisável → Markdown + Knowledge Intake.</p></div><span className="flex items-center gap-2 rounded-xl bg-forest/5 px-3 py-2 text-[11px] font-bold text-forest"><ShieldCheck className="h-4 w-4" /> Aprovação obrigatória</span></div><div className="mt-5 grid gap-4 md:grid-cols-[1fr_280px]"><button onClick={() => inputRef.current?.click()} className="flex min-h-36 flex-col items-center justify-center rounded-2xl border-2 border-dashed border-forest/20 bg-forest/3 p-5 text-center transition hover:border-forest/45 hover:bg-forest/5"><FolderUp className="h-8 w-8 text-forest" /><span className="mt-2 text-[14px] font-bold text-ink">Selecionar arquivos ou ZIP</span><span className="mt-1 text-[11px] text-ink/50">A estrutura é preservada; lixo técnico é ignorado.</span></button><div className="rounded-2xl border border-forest/10 p-4"><label className="text-[12px] font-bold text-ink/70">Caminho original (opcional)</label><input value={sourcePath} onChange={event => setSourcePath(event.target.value)} placeholder="/Users/Pedro/..." className="mt-2 h-10 w-full rounded-xl border border-forest/15 px-3 text-[12px] outline-none focus:border-forest/40" /><p className="mt-2 text-[11px] text-ink/45">O navegador não consegue descobrir esse caminho sozinho.</p></div></div><input ref={inputRef} onChange={onFiles} type="file" multiple className="hidden" accept=".zip,.md,.txt,.csv,.json,.sql,.py,.ipynb,.pdf,.doc,.docx,.xlsx,.png,.jpg" /><div className="mt-4 flex flex-wrap items-center gap-3"><button onClick={analyze} disabled={!selected.length || state === 'reading' || state === 'analyzing'} className="flex items-center gap-2 rounded-xl bg-forest px-4 py-2.5 text-[12px] font-bold text-white disabled:opacity-40">{state === 'analyzing' || state === 'reading' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4 fill-white" />} Analisar {selected.length ? `(${selected.length})` : ''} com Gemini</button><p className={`text-[12px] font-medium ${state === 'error' ? 'text-red-700' : 'text-ink/55'}`}>{message}</p></div></div>
-    {!!items.length && <div className="rounded-2xl border border-forest/10 bg-white p-5"><div className="flex flex-wrap items-center justify-between gap-3"><div><h3 className="text-[14px] font-bold text-ink">Estrutura encontrada</h3><p className="mt-1 text-[11px] text-ink/50">{selected.length} selecionado(s){ignoredCount ? ` · ${ignoredCount} item(ns) técnico(s) ignorado(s)` : ''}</p></div><div className="flex flex-wrap items-center gap-2"><button onClick={() => setSelection('recommended')} className="rounded-lg border border-forest/15 px-3 py-2 text-[11px] font-bold text-forest">Recomendados</button><button onClick={() => setSelection('document')} className="rounded-lg border border-forest/15 px-3 py-2 text-[11px] font-bold text-forest">Documentos</button><button onClick={() => setSelection('code')} className="rounded-lg border border-forest/15 px-3 py-2 text-[11px] font-bold text-forest">Códigos</button><button onClick={() => setSelection('all')} className="rounded-lg border border-forest/15 px-3 py-2 text-[11px] font-bold text-forest">Todos</button><button aria-label="Limpar seleção" onClick={() => setSelection('none')} className="px-1 text-[11px] font-bold text-ink/45 hover:text-forest">Limpar</button></div></div><div className="mt-4 space-y-4">{(Object.entries(folders) as [string, SourceItem[]][]).sort(([a], [b]) => a.localeCompare(b)).map(([folder, group]) => <div key={folder}><div className="mb-2 flex items-center gap-2 text-[11px] font-bold text-forest"><Folder className="h-4 w-4" />{editingFolder === folder ? <input autoFocus value={folderNames[folder] ?? folder} onChange={event => setFolderNames(current => ({ ...current, [folder]: event.target.value }))} onBlur={() => setEditingFolder(null)} onKeyDown={event => { if (event.key === 'Enter') setEditingFolder(null); }} className="h-6 w-72 rounded border border-forest/20 px-2 text-[11px] outline-none" /> : <><span>{folderNames[folder] || folder}</span><button aria-label={`Editar nome exibido de ${folder}`} onClick={() => setEditingFolder(folder)} className="rounded p-1 text-forest/55 hover:bg-forest/8 hover:text-forest"><Pencil className="h-3.5 w-3.5" /></button></>}</div><div className="grid gap-2 md:grid-cols-2">{group.map(item => <label key={item.id} className={`flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition ${item.selected ? 'border-forest/20 bg-forest/5' : 'border-forest/8 bg-white opacity-70'}`}><ItemIcon item={item} /><div className="min-w-0 flex-1"><p className="truncate text-[12px] font-bold text-ink">{item.name}</p><p className="text-[10px] text-ink/50">{item.type} · {humanSize(item.size)}</p></div><input aria-label={`Selecionar ${item.name}`} type="checkbox" checked={item.selected} onChange={() => toggleItem(item.id)} className="h-4 w-4 accent-forest" /></label>)}</div></div>)}</div></div>}
-    {!!proposals.length && <div className="rounded-2xl border border-forest/10 bg-white p-5"><div className="flex flex-wrap items-center justify-between gap-3"><div><h3 className="text-[14px] font-bold text-ink">Revisão antes de aprovar</h3><p className="text-[11px] text-ink/50">Cada MD tem no máximo 2.200 caracteres; metadados ficam fora desse limite.</p></div><div className="flex gap-2"><button onClick={download} className="flex items-center gap-2 rounded-xl border border-forest/15 px-3 py-2 text-[12px] font-bold text-forest"><Download className="h-4 w-4" /> Baixar MDs</button><button onClick={integrate} className="flex items-center gap-2 rounded-xl bg-forest px-3 py-2 text-[12px] font-bold text-white"><CheckCircle2 className="h-4 w-4" /> Aprovar e integrar</button></div></div><div className="mt-4 space-y-3">{proposals.map(item => <div key={item.id} className="rounded-xl border border-forest/10 p-4"><div className="grid gap-3 md:grid-cols-[1.2fr_.65fr_.8fr]"><div><label className="text-[10px] font-bold uppercase text-ink/45">Título</label><input value={item.title} onChange={event => updateProposal(item.id, { title: event.target.value })} className="mt-1 h-9 w-full rounded-lg border border-forest/15 px-2 text-[12px]" /></div><div><label className="text-[10px] font-bold uppercase text-ink/45">PARA</label><select value={item.para} onChange={event => updateProposal(item.id, { para: event.target.value as Para })} className="mt-1 h-9 w-full rounded-lg border border-forest/15 px-2 text-[12px]">{Object.entries(paraLabel).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></div><div><label className="text-[10px] font-bold uppercase text-ink/45">Pai</label><input value={item.parent} onChange={event => updateProposal(item.id, { parent: event.target.value })} className="mt-1 h-9 w-full rounded-lg border border-forest/15 px-2 text-[12px]" /></div></div><p className="mt-3 text-[12px] leading-relaxed text-ink/70">{item.summary}</p><div className="mt-2 flex items-center gap-2 text-[10px] text-ink/45"><FileText className="h-3.5 w-3.5" /> {item.relativePath} · confiança {item.confidence}%</div></div>)}</div></div>}
-    {state === 'saved' && <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-[13px] font-bold text-emerald-800"><Check className="mr-2 inline h-4 w-4" />Integração concluída neste navegador.</div>}
-  </div>;
+  const inputRef = useRef<HTMLInputElement>(null);
+  const { addBatchItems, addKiIngestionBatch } = useStore();
+
+  const [items, setItems] = useState<ExtractedFileItem[]>([]);
+  const [proposals, setProposals] = useState<ParaProposalItem[]>([]);
+  const [sourcePath, setSourcePath] = useState('');
+  const [ignoredCount, setIgnoredCount] = useState(0);
+  const [folderNames, setFolderNames] = useState<Record<string, string>>({});
+  const [editingFolder, setEditingFolder] = useState<string | null>(null);
+  const [progressMsg, setProgressMsg] = useState('');
+
+  const [state, setState] = useState<'idle' | 'reading' | 'analyzing' | 'ready' | 'saved' | 'error'>('idle');
+  const [message, setMessage] = useState('Selecione arquivos ou um ZIP (limite 100 MB). Nada é enviado sem sua autorização.');
+
+  const selectedItems = useMemo(() => items.filter(it => it.selected), [items]);
+
+  const folders = useMemo(() => {
+    return items.reduce<Record<string, ExtractedFileItem[]>>((groups, item) => {
+      const parts = item.relativePath.replace(/\\/g, '/').split('/');
+      const folder = parts.length > 1 ? parts.slice(0, -1).join('/') : 'Arquivos na raiz';
+      if (!groups[folder]) groups[folder] = [];
+      groups[folder].push(item);
+      return groups;
+    }, {});
+  }, [items]);
+
+  const handleFiles = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const fileList = Array.from(event.target.files || []) as File[];
+    if (!fileList.length) return;
+
+    const oversized = fileList.find(f => f.size > MAX_FILE_BYTES);
+    if (oversized) {
+      setState('error');
+      setMessage(`"${oversized.name}" ultrapassa o limite máximo de 100 MB.`);
+      return;
+    }
+
+    setState('reading');
+    setMessage('Processando arquivos, extraindo conteúdo e calculando SHA-256...');
+
+    try {
+      const allExtracted: ExtractedFileItem[] = [];
+      let totalIgnored = 0;
+
+      for (const file of fileList) {
+        if (file.name.toLowerCase().endsWith('.zip')) {
+          const { items: zipItems, ignoredCount: zipIgnored } = await processZipFile(file);
+          allExtracted.push(...zipItems);
+          totalIgnored += zipIgnored;
+        } else {
+          const single = await processSingleFile(file);
+          allExtracted.push(single);
+        }
+      }
+
+      setItems(allExtracted);
+      setIgnoredCount(totalIgnored);
+      setFolderNames({});
+      setEditingFolder(null);
+      setProposals([]);
+      setState('idle');
+      setMessage(`${allExtracted.length} arquivo(s) preparado(s) localmente. Selecione os que deseja enviar para classificação.`);
+    } catch (err: any) {
+      console.error(err);
+      setState('error');
+      setMessage('Falha ao processar arquivos. Confirme que não estão corrompidos e têm até 100 MB.');
+    }
+  };
+
+  const toggleItem = (id: string) => {
+    setItems(current => current.map(item => item.id === id ? { ...item, selected: !item.selected } : item));
+  };
+
+  const setSelectionMode = (mode: 'all' | 'recommended' | 'document' | 'code' | 'none') => {
+    setItems(current => current.map(item => {
+      let isSel = false;
+      if (mode === 'all') isSel = true;
+      else if (mode === 'recommended') isSel = item.kind === 'document' || item.kind === 'code';
+      else if (mode === 'none') isSel = false;
+      else isSel = item.kind === mode;
+      return { ...item, selected: isSel };
+    }));
+  };
+
+  const analyzeWithGemini = async () => {
+    if (!selectedItems.length) {
+      setState('error');
+      setMessage('Selecione pelo menos um arquivo para analisar.');
+      return;
+    }
+
+    const credential = getGeminiCredential();
+    if (!credential.apiKey) {
+      setState('error');
+      setMessage('Configure sua Gemini API Key em Dados → Credenciais antes de analisar.');
+      return;
+    }
+
+    setState('analyzing');
+    setMessage(`Analisando ${selectedItems.length} arquivo(s) com ${credential.model}...`);
+
+    try {
+      const { successful, failed } = await analyzeBatchWithGemini(selectedItems, (done, total) => {
+        setProgressMsg(`Processados ${done} de ${total}...`);
+      });
+
+      const nextProposals = successful.map(prop => ({
+        ...prop,
+        markdown: buildMarkdownTwin(prop, sourcePath),
+      }));
+
+      setProposals(nextProposals);
+      setState('ready');
+
+      if (failed.length > 0) {
+        setMessage(`Análise concluída com ${failed.length} fallback(s) locais devido a limitações de cota.`);
+      } else {
+        setMessage('Proposta gerada com sucesso! Revise antes de aprovar para o Knowledge Intake.');
+      }
+    } catch (err: any) {
+      console.error(err);
+      const errMsg = err?.message || String(err);
+      // Fallback local se a API falhar completamente
+      const localProps = selectedItems.map(it => {
+        const prop = localFallbackProposal(it);
+        return {
+          ...prop,
+          markdown: buildMarkdownTwin(prop, sourcePath),
+        };
+      });
+      setProposals(localProps);
+      setState('ready');
+      setMessage(`Atenção: A chamada ao Gemini falhou (${errMsg.slice(0, 100)}). Proposta gerada via regras locais.`);
+    }
+  };
+
+  const updateProposal = (id: string, patch: Partial<ParaProposalItem>) => {
+    setProposals(current => current.map(item => {
+      if (item.id !== id) return item;
+      const updated = { ...item, ...patch };
+      return {
+        ...updated,
+        markdown: buildMarkdownTwin(updated, sourcePath),
+      };
+    }));
+  };
+
+  const toggleProposalStatus = (id: string) => {
+    setProposals(current => current.map(item => {
+      if (item.id !== id) return item;
+      const nextStatus = item.status === 'rejected' ? 'approved' : 'rejected';
+      return { ...item, status: nextStatus };
+    }));
+  };
+
+  const downloadMarkdownZip = async () => {
+    const approvedProposals = proposals.filter(p => p.status !== 'rejected');
+    if (!approvedProposals.length) {
+      alert('Nenhum item aprovado para download.');
+      return;
+    }
+
+    const zip = new JSZip();
+    approvedProposals.forEach(item => {
+      const cleanName = item.title.replace(/[^a-zA-Z0-9-_ ]/g, '').trim().slice(0, 80) || item.id;
+      zip.file(`${cleanName}.md`, item.markdown);
+    });
+
+    const blob = await zip.generateAsync({ type: 'blob' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'me-knowledge-twins.zip';
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const integrateApprovedItems = async () => {
+    const approvedProposals = proposals.filter(p => p.status !== 'rejected');
+    if (!approvedProposals.length) {
+      alert('Nenhum item marcado como aprovado.');
+      return;
+    }
+
+    // Persistência no Knowledge Intake unificado
+    if (addKiIngestionBatch) {
+      await addKiIngestionBatch(approvedProposals, sourcePath);
+    } else {
+      // Fallback
+      addBatchItems?.({
+        areas: approvedProposals.filter(p => p.para === 'area').map(p => ({ name: p.title, icon: '📁' })),
+        projects: approvedProposals.filter(p => p.para === 'project').map(p => ({
+          title: p.title,
+          desc: p.summary,
+          area: p.parent || 'Inbox',
+          status: 'active' as const,
+        })),
+        resources: approvedProposals.filter(p => p.para === 'resource' || p.para === 'archive').map(p => ({
+          title: p.title,
+          area: p.parent || (p.para === 'archive' ? 'Arquivados' : 'Inbox'),
+        })),
+        tasks: approvedProposals.flatMap(p => (p.actions || []).map(action => ({
+          title: action,
+          area: p.parent || 'Inbox',
+          project: p.para === 'project' ? p.title : undefined,
+          priority: 'P 2',
+          battleTokens: '10',
+          status: 'not-started' as const,
+        }))),
+      });
+    }
+
+    setState('saved');
+    setMessage(`${approvedProposals.length} item(ns) integrado(s) com sucesso ao Knowledge Intake (persistido no IndexedDB).`);
+  };
+
+  const ItemIcon = ({ kind }: { kind: string }) => {
+    if (kind === 'image') return <FileImage className="h-4 w-4 text-forest" />;
+    if (kind === 'code') return <FileCode2 className="h-4 w-4 text-forest" />;
+    if (kind === 'document') return <FileText className="h-4 w-4 text-forest" />;
+    return <FileText className="h-4 w-4 text-forest/60" />;
+  };
+
+  return (
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 pb-12">
+      {/* Bloco de Upload & Configurações de Raiz */}
+      <div className="rounded-2xl border border-forest/10 bg-white p-6 shadow-sm">
+        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+          <div>
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-forest" />
+              <h2 className="text-[18px] font-bold text-ink">Ingestão PARA & Knowledge Intake</h2>
+            </div>
+            <p className="mt-1 text-[13px] text-ink/60">
+              Upload local → limpeza de ruído → extração SHA-256 → Gemini com Structured Output → Proposta com Aprovação.
+            </p>
+          </div>
+          <span className="flex items-center gap-2 rounded-xl bg-forest/5 px-3 py-2 text-[11px] font-bold text-forest">
+            <ShieldCheck className="h-4 w-4" /> Aprovação humana obrigatória
+          </span>
+        </div>
+
+        <div className="mt-5 grid gap-4 md:grid-cols-[1fr_300px]">
+          <button
+            type="button"
+            onClick={() => inputRef.current?.click()}
+            className="flex min-h-36 flex-col items-center justify-center rounded-2xl border-2 border-dashed border-forest/20 bg-forest/3 p-5 text-center transition hover:border-forest/45 hover:bg-forest/5 cursor-pointer"
+          >
+            <FolderUp className="h-8 w-8 text-forest" />
+            <span className="mt-2 text-[14px] font-bold text-ink">Selecionar arquivos ou arquivo ZIP</span>
+            <span className="mt-1 text-[11px] text-ink/50">
+              PDF, DOCX, XLSX, TXT, MD, CSV, JSON, Código e Imagens (máx. 100 MB).
+            </span>
+          </button>
+
+          <div className="rounded-2xl border border-forest/10 p-4 bg-nude-light/30 flex flex-col justify-between">
+            <div>
+              <label className="text-[12px] font-bold text-ink/70" htmlFor="source-root-input">
+                Caminho Raiz Original
+              </label>
+              <input
+                id="source-root-input"
+                value={sourcePath}
+                onChange={e => setSourcePath(e.target.value)}
+                placeholder="/Users/Pedro/Documents..."
+                className="mt-2 h-10 w-full rounded-xl border border-forest/15 bg-white px-3 font-mono text-[11px] outline-none focus:border-forest/40 focus:ring-2 focus:ring-forest/10"
+              />
+            </div>
+            <p className="mt-2 text-[11px] text-ink/50 leading-relaxed">
+              Utilizado para preencher `path_mac` e `path_windows` no frontmatter do Markdown.
+            </p>
+          </div>
+        </div>
+
+        <input
+          ref={inputRef}
+          onChange={handleFiles}
+          type="file"
+          multiple
+          className="hidden"
+          accept=".zip,.md,.txt,.csv,.json,.sql,.py,.ipynb,.pdf,.doc,.docx,.xlsx,.xls,.png,.jpg,.jpeg,.webp"
+        />
+
+        <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-forest/10 pt-4">
+          <button
+            type="button"
+            onClick={analyzeWithGemini}
+            disabled={!selectedItems.length || state === 'reading' || state === 'analyzing'}
+            className="flex items-center gap-2 rounded-xl bg-forest px-4 py-2.5 text-[12px] font-bold text-white shadow-sm transition hover:bg-forest/90 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {state === 'analyzing' || state === 'reading' ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Play className="h-4 w-4 fill-white" />
+            )}
+            Analisar {selectedItems.length ? `(${selectedItems.length})` : ''} com Gemini
+          </button>
+
+          <p className={`text-[12px] font-medium ${state === 'error' ? 'text-red-700 font-bold' : 'text-ink/65'}`}>
+            {progressMsg || message}
+          </p>
+        </div>
+      </div>
+
+      {/* Árvore de Arquivos Extraídos e Filtros */}
+      {items.length > 0 && (
+        <div className="rounded-2xl border border-forest/10 bg-white p-5 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-forest/10 pb-4">
+            <div>
+              <h3 className="text-[14px] font-bold text-ink">Árvore de Arquivos Identificados</h3>
+              <p className="mt-0.5 text-[11px] text-ink/50">
+                {selectedItems.length} de {items.length} selecionado(s)
+                {ignoredCount > 0 ? ` · ${ignoredCount} arquivos de lixo técnico descartados` : ''}
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setSelectionMode('recommended')}
+                className="rounded-lg border border-forest/15 px-3 py-1.5 text-[11px] font-bold text-forest hover:bg-forest/5"
+              >
+                Recomendados
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectionMode('document')}
+                className="rounded-lg border border-forest/15 px-3 py-1.5 text-[11px] font-bold text-forest hover:bg-forest/5"
+              >
+                Documentos
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectionMode('code')}
+                className="rounded-lg border border-forest/15 px-3 py-1.5 text-[11px] font-bold text-forest hover:bg-forest/5"
+              >
+                Códigos
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectionMode('all')}
+                className="rounded-lg border border-forest/15 px-3 py-1.5 text-[11px] font-bold text-forest hover:bg-forest/5"
+              >
+                Todos
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectionMode('none')}
+                className="px-2 text-[11px] font-bold text-ink/45 hover:text-forest"
+              >
+                Limpar
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-4 space-y-4 max-h-[400px] overflow-y-auto pr-1">
+            {(Object.entries(folders) as [string, ExtractedFileItem[]][]).sort(([a], [b]) => a.localeCompare(b)).map(([folder, group]) => (
+              <div key={folder} className="rounded-xl border border-forest/8 p-3 bg-forest/2">
+                <div className="mb-2.5 flex items-center gap-2 text-[11px] font-bold text-forest">
+                  <Folder className="h-4 w-4" />
+                  {editingFolder === folder ? (
+                    <input
+                      autoFocus
+                      value={folderNames[folder] ?? folder}
+                      onChange={e => setFolderNames(curr => ({ ...curr, [folder]: e.target.value }))}
+                      onBlur={() => setEditingFolder(null)}
+                      onKeyDown={e => e.key === 'Enter' && setEditingFolder(null)}
+                      className="h-6 w-72 rounded border border-forest/25 bg-white px-2 text-[11px] outline-none"
+                    />
+                  ) : (
+                    <>
+                      <span>{folderNames[folder] || folder}</span>
+                      <button
+                        type="button"
+                        onClick={() => setEditingFolder(folder)}
+                        className="rounded p-1 text-forest/55 hover:bg-forest/10 hover:text-forest"
+                        title="Renomear exibição da pasta"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </button>
+                    </>
+                  )}
+                  <span className="ml-auto text-[10px] text-ink/40 font-mono">({group.length} itens)</span>
+                </div>
+
+                <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                  {group.map(item => (
+                    <label
+                      key={item.id}
+                      className={`flex cursor-pointer items-center gap-3 rounded-xl border p-2.5 transition ${
+                        item.selected
+                          ? 'border-forest/25 bg-white shadow-xs'
+                          : 'border-forest/8 bg-white/60 opacity-60'
+                      }`}
+                    >
+                      <ItemIcon kind={item.kind} />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-[12px] font-bold text-ink">{item.name}</p>
+                        <div className="flex items-center gap-2 text-[10px] text-ink/45 font-mono">
+                          <span>{item.type}</span>
+                          <span>•</span>
+                          <span>{formatBytes(item.size)}</span>
+                          <span>•</span>
+                          <span className="truncate" title={item.sha256}>
+                            {item.sha256.slice(0, 8)}...
+                          </span>
+                        </div>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={item.selected}
+                        onChange={() => toggleItem(item.id)}
+                        className="h-4 w-4 accent-forest rounded"
+                      />
+                    </label>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Propostas de Classificação PARA & Revisão Humana */}
+      {proposals.length > 0 && (
+        <div className="rounded-2xl border border-forest/10 bg-white p-5 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-forest/10 pb-4">
+            <div>
+              <h3 className="text-[15px] font-bold text-ink">Revisão Humana e Propostas do Gemini</h3>
+              <p className="mt-0.5 text-[11px] text-ink/50">
+                Edite os metadados antes de aprovar. Cada representante Markdown gerado possui corpo ≤ 2.200 caracteres.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={downloadMarkdownZip}
+                className="flex items-center gap-2 rounded-xl border border-forest/15 bg-white px-3.5 py-2 text-[12px] font-bold text-forest transition hover:bg-forest/5"
+              >
+                <Download className="h-4 w-4" /> Baixar Markdown (.zip)
+              </button>
+              <button
+                type="button"
+                onClick={integrateApprovedItems}
+                className="flex items-center gap-2 rounded-xl bg-forest px-4 py-2 text-[12px] font-bold text-white shadow-sm transition hover:bg-forest/90"
+              >
+                <CheckCircle2 className="h-4 w-4" /> Aprovar e Integrar ao KI
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-4 space-y-3">
+            {proposals.map(item => {
+              const isApproved = item.status !== 'rejected';
+              return (
+                <div
+                  key={item.id}
+                  className={`rounded-xl border p-4 transition ${
+                    isApproved ? 'border-forest/15 bg-white' : 'border-red-200 bg-red-50/40 opacity-60'
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="grid flex-1 gap-3 md:grid-cols-[1.4fr_.7fr_.9fr]">
+                      <div>
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-ink/45">Título</label>
+                        <input
+                          value={item.title}
+                          onChange={e => updateProposal(item.id, { title: e.target.value })}
+                          className="mt-1 h-9 w-full rounded-lg border border-forest/15 bg-white px-2.5 text-[12px] font-bold text-ink outline-none focus:border-forest/40"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-ink/45">Categoria PARA</label>
+                        <select
+                          value={item.para}
+                          onChange={e => updateProposal(item.id, { para: e.target.value as ParaCategory })}
+                          className="mt-1 h-9 w-full rounded-lg border border-forest/15 bg-white px-2 text-[12px] font-bold text-ink outline-none focus:border-forest/40"
+                        >
+                          {Object.entries(PARA_LABELS).map(([value, label]) => (
+                            <option key={value} value={value}>
+                              {label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-ink/45">Vínculo Pai (Área / Projeto)</label>
+                        <input
+                          value={item.parent}
+                          onChange={e => updateProposal(item.id, { parent: e.target.value })}
+                          placeholder="Inbox, Saúde, etc."
+                          className="mt-1 h-9 w-full rounded-lg border border-forest/15 bg-white px-2.5 text-[12px] font-medium text-ink outline-none focus:border-forest/40"
+                        />
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => toggleProposalStatus(item.id)}
+                      className={`shrink-0 rounded-xl px-3 py-2 text-[11px] font-bold transition ${
+                        isApproved
+                          ? 'bg-forest/10 text-forest hover:bg-red-50 hover:text-red-700'
+                          : 'bg-red-100 text-red-800 hover:bg-forest/10 hover:text-forest'
+                      }`}
+                    >
+                      {isApproved ? 'Aprovado ✓' : 'Rejeitado ✗'}
+                    </button>
+                  </div>
+
+                  <p className="mt-3 text-[12.5px] leading-relaxed text-ink/75 font-medium">
+                    {item.summary}
+                  </p>
+
+                  {item.actions && item.actions.length > 0 && (
+                    <div className="mt-2.5 flex flex-wrap items-center gap-2">
+                      <span className="text-[10px] font-bold text-forest uppercase">Ações:</span>
+                      {item.actions.map((act, idx) => (
+                        <span key={idx} className="rounded-md bg-forest/5 px-2 py-0.5 text-[11px] font-medium text-forest">
+                          ☐ {act}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-forest/5 pt-2.5 text-[10px] text-ink/45 font-mono">
+                    <span>{item.relativePath}</span>
+                    <span>•</span>
+                    <span>SHA-256: {item.sha256.slice(0, 10)}...</span>
+                    <span>•</span>
+                    <span>Confiança: {item.confidence}%</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {state === 'saved' && (
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-[13px] font-bold text-emerald-800 flex items-center gap-2">
+          <Check className="h-5 w-5 text-emerald-600" />
+          <span>{message}</span>
+        </div>
+      )}
+    </div>
+  );
 }

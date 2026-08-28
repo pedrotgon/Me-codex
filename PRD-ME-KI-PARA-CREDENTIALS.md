@@ -1,168 +1,255 @@
-# PRD — Më: Knowledge Intake, Credenciais e Para-Organizer
+# PRD — Më Life OS: PARA, Knowledge Intake, Memória e Jarvis
 
-**Versão:** 1.0  
-**Data:** 2026-08-27  
-**Status:** aprovado para implementação do primeiro incremento  
-**Leitores:** Pedro e qualquer IA executora (Codex, Gemini, Claude ou equivalente)
+**Versão:** 2.0  
+**Data:** 2026-08-28  
+**Repositório:** https://github.com/pedrotgon/Me-codex  
+**Site atual:** https://m-life-os-pedro.pedrotg022.chatgpt.site  
+**Baseline auditado:** commit dd45fe29f0490294d2fd01baaf166bb4406e8cc4  
+**Status:** implementação parcial; exige conclusão e validação ponta a ponta.
 
-## 1. Resumo executivo
+## 1. Visão do produto
 
-O Më é um Life OS pessoal em que o **Knowledge Intake (KI)** funciona como fonte única lógica para Projects, Areas, Resources, Archives, Tasks, arquivos e relações. Este incremento não cria um banco paralelo: preserva a base atual, documenta suas limitações e acrescenta uma configuração local de credenciais para testes com Gemini 3.6 Flash.
+O Më é um segundo cérebro local-first. O Knowledge Intake (KI) é a fonte lógica única de Projects, Areas, Resources, Archives, Tasks, arquivos Markdown e relações.
 
-O Para-Organizer deixa de aparecer duplicado dentro de Dados e passa a possuir uma única entrada na barra lateral, imediatamente abaixo de Dados. A estética existente — verde floresta, fundo nude, Inter, bordas discretas e alta densidade informacional — é mandatória.
+Fluxo principal:
 
-## 2. Início rápido para qualquer IA executora
+Arquivo/ZIP → limpeza → extração local → seleção → Gemini → proposta → revisão humana → KI + Markdown → Memória.
 
-### Contexto obrigatório
+Nenhuma informação é gravada definitivamente antes da aprovação humana.
 
-- Trabalhe no repositório existente; não recrie a aplicação.
-- Leia este PRD inteiro antes de editar.
-- Preserve alterações do usuário e a arquitetura React/Vite atual.
-- Não crie outro SQLite ou outra “fonte da verdade” sem evidência de necessidade.
-- Não revele, registre em logs, envie ao KI ou faça commit de credenciais.
-- Execute um bloco por vez e valide seus critérios de conclusão.
-- Não exponha raciocínio privado; registre decisões verificáveis e resultados.
+## 2. Leitura obrigatória para qualquer IA
 
-### Ordem de execução
+Antes de editar:
 
-1. Auditar `DadosCortex`, `DadosView`, `DadosIngestao`, `Sidebar`, `App` e `store`.
-2. Confirmar que KI é hoje uma projeção unificada das coleções em memória.
-3. Implementar Credenciais como configuração local e isolada do KI.
-4. Remover Para-Organizer das abas internas de Dados.
-5. Criar a rota única Para-Organizer na barra lateral, abaixo de Dados.
-6. Rodar lint e build; corrigir somente defeitos relacionados ao incremento.
+1. Ler `AGENTS.md`.
+2. Ler este PRD inteiro.
+3. Inspecionar `domain/`, `ferramentas/` e o código existente.
+4. Identificar regras de negócio antes de alterar componentes.
+5. Preservar a arquitetura React/Vite, o design atual e mudanças do usuário.
+6. Não revelar raciocínio privado; registrar decisões, evidências e limitações.
+7. Não publicar o site. Ao final, deixar a `main` validada para publicação posterior.
 
-## 3. Objetivos e não objetivos
+## 3. Direção visual
 
-### Objetivos
+Preservar a identidade do Më:
 
-- Criar a aba **Credenciais** ao lado de **Knowledge Intake**.
-- Configurar `gemini-3.6-flash` para testes.
-- Permitir salvar, testar e remover a chave Gemini neste dispositivo.
-- Reservar campos opcionais para OpenAI e Anthropic sem ativar integrações fictícias.
-- Manter KI como SSOT lógico.
-- Consolidar uma única navegação para Para-Organizer.
+- verde floresta, fundo claro/nude e tipografia existente;
+- alta densidade informacional;
+- bordas discretas e hierarquia limpa;
+- sem gradientes, neon, glassmorphism ou aparência genérica de IA;
+- reutilizar componentes, tokens, ícones e padrões existentes.
 
-### Não objetivos deste incremento
+## 4. Estado atual confirmado
 
-- Criar autenticação própria, SQL, sincronização multi-dispositivo ou cofre servidor.
-- Armazenar arquivos originais no site.
-- Finalizar a geração dos arquivos Markdown ou o grafo.
-- Prometer monitoramento real do computador em um site hospedado.
-- Enviar chamadas OpenAI ou Anthropic.
+### Concluído
 
-## 4. Arquitetura
+- Knowledge Intake e coleções PARA existentes.
+- Aba Credenciais com chave Gemini local.
+- Uma entrada Para-Organizer abaixo de Dados.
+- Abas Visão geral, Conteúdo da skill e Upload.
+- Upload de arquivos e ZIP com limite de 100 MB.
+- Preservação dos caminhos relativos do ZIP.
+- Exclusão de `__MACOSX`, `._*`, `.DS_Store`, `.venv`, `node_modules`, `.git` e `__pycache__`.
+- Seleção individual e filtros Recomendados, Documentos, Códigos, Todos e Limpar.
+- Agrupamento por pastas e edição do nome exibido.
+- Extração local de texto de PDF e OCR com PDF.js/Tesseract.
+- Gemini por lotes, revisão de título, categoria PARA e pai.
+- Geração e download de Markdown em ZIP.
+- Corpo do Markdown limitado a 2.200 caracteres; frontmatter fora do limite.
+- Aprovação antes da integração.
+- Build de produção concluído em 2026-08-28.
 
-### Camadas
+### Concluído e Validado (v2.1)
 
-1. **Dados atuais:** estado React com Tasks, Projects, Areas e Resources.
-2. **KI:** projeção unificada e interface operacional sobre essas coleções.
-3. **Para-Organizer:** entrada, proposta, revisão e futura geração de representantes Markdown.
-4. **Credenciais:** configuração técnica local; nunca é conhecimento do usuário.
-5. **IA:** usa credenciais para analisar conteúdo e propor alterações; não grava sem aprovação.
+- Knowledge Intake como Single Source of Truth consolidado no IndexedDB com 6 stores (`nodes`, `relations`, `source_assets`, `markdown_twins`, `ingestion_jobs`, `approval_events`).
+- Extração local com cálculo de SHA-256 via Web Crypto, suporte a PDF (PDF.js + OCR Tesseract), DOCX, XLSX e imagens.
+- Preservação correta de tamanho e data descompactada de arquivos em ZIP e descarte de arquivos ocultos/lixo técnico.
+- Structured Output com JSON Schema no Gemini API, lotes de 6 itens, retries exponenciais e preservação de resultados parciais.
+- Geração de Markdown Twins com frontmatter completo (`path_mac`, `path_windows`, `sha256`, `mime_type`, etc.) e corte no corpo em 2.200 caracteres.
+- Memória completa com 4 abas integradas (Mapa Relacional D3 force-directed estilo Obsidian na paleta Forest/Nude, Nós, Relações e Órfãos).
+- Jarvis conectado à Gemini API com modelo ativo exibido, respostas consultivas diretas e cartões de proposta interativos com botões de aprovação e rejeição.
+- Validação E2E com Agent Browser e registro de evidências visuais em `artifacts/verification/`.
+- Build de produção verificado com 0 erros de tipagem.
 
-### Regra de fonte única
+## 5. Para-Organizer definitivo
 
-Novas tabelas ou bases só podem existir quando representam entidades que o KI não comporta corretamente, como `source_files`, `markdown_twins`, `relations`, `ingestion_proposals` e `audit_log`. Quando persistência real for adicionada, essas estruturas devem alimentar o KI, não competir com ele.
+### Pipeline
 
-## 5. Camada de dados
+1. Receber arquivo ou ZIP.
+2. Validar o limite de 100 MB.
+3. Preservar árvore e metadados disponíveis.
+4. Remover lixo técnico.
+5. Extrair texto localmente.
+6. Calcular SHA-256 com Web Crypto.
+7. Permitir seleção e revisão.
+8. Enviar ao Gemini somente conteúdo selecionado.
+9. Validar resposta contra JSON Schema.
+10. Exibir proposta editável.
+11. Aprovar ou rejeitar por item.
+12. Persistir no KI.
+13. Gerar os representantes `.md`.
 
-### Estado atual confirmado
+### Extração
 
-O projeto não possui SQLite funcional neste incremento. O KI combina arrays de `areas`, `projects`, `tasks` e `resources`. Credenciais não pertencem a esses dados.
+- PDF textual: PDF.js.
+- PDF digitalizado: OCR sob demanda em português e inglês.
+- TXT, MD, CSV, JSON e código: leitura textual.
+- DOCX: extração local adequada.
+- XLSX: nomes das abas e valores úteis, sem fórmulas executáveis.
+- Imagens: OCR somente quando selecionadas.
+- Binários desconhecidos: metadados, sem inventar conteúdo.
 
-### Credenciais locais de teste
+Nunca armazenar o arquivo original no site. O representante Markdown aponta para ele.
 
-Chave do navegador: `me_credentials_v1`.
+### Frontmatter mínimo
 
-```json
-{
-  "gemini": { "apiKey": "AIza...", "model": "gemini-3.6-flash" },
-  "openai": { "apiKey": "" },
-  "anthropic": { "apiKey": "" },
-  "updatedAt": "2026-08-27T18:30:00.000Z"
-}
-```
+- `id`
+- `title`
+- `original_file`
+- `relative_path`
+- `path_mac`
+- `path_windows`
+- `mime_type`
+- `size`
+- `modified`
+- `sha256`
+- `para`
+- `parent`
+- `tags`
+- `created_at`
 
-Regras:
+Os caminhos absolutos devem ser informados ou derivados de uma raiz fornecida pelo usuário. O navegador não pode inventá-los.
 
-- persistência somente em `localStorage` do navegador atual;
-- nunca incluir o valor em analytics, KI, logs ou mensagens de erro;
-- campo sempre `password` e mascarado por padrão;
-- remoção deve apagar o valor salvo;
-- produção exige proxy servidor/cofre de segredos.
-- no plano gratuito, não processar inicialmente documentos pessoais sensíveis, pois o conteúdo pode ser usado pelo provedor para melhoria dos produtos.
+### Resiliência Gemini
 
-### Futuro representante Markdown
+- Usar Structured Output com JSON Schema/Zod.
+- Validar todos os campos antes de atualizar a interface.
+- Lotes máximos de oito itens e concorrência controlada.
+- Até duas novas tentativas com espera progressiva para 429/5xx.
+- Uma falha deve afetar somente o lote correspondente.
+- Preservar resultados parciais.
+- Mostrar “tentar novamente” sem perder seleção ou revisão.
+- Nunca exibir a chave em logs ou erros.
+- Não confundir o modelo do Anti-Gravity com o identificador da Gemini API.
+- Modelo da API deve vir da aba Credenciais e ser validado.
 
-O frontmatter não conta no limite. Somente o corpo após o segundo `---` possui máximo de 2.200 caracteres. O Markdown aponta ao original; não duplica o binário.
+## 6. Knowledge Intake e persistência
 
-## 6. Especificações dos componentes
+O KI permanece a única fonte lógica. Não criar banco concorrente.
 
-### Credenciais
+Criar uma camada única de acesso aos dados e persistência frontend em IndexedDB para:
 
-- Local: `Dados > Credenciais`, imediatamente após Knowledge Intake.
-- Campos: Gemini API Key, modelo fixo visível, OpenAI API Key opcional e Anthropic API Key opcional.
-- Ações Gemini: mostrar/ocultar, salvar, testar conexão e remover.
-- Teste: uma solicitação mínima esperando resposta; tratar chave inválida, indisponibilidade e `429` sem revelar a chave.
-- Mensagem de segurança: configuração local de rascunho; produção requer backend.
+- nodes;
+- relations;
+- source_assets;
+- markdown_twins;
+- ingestion_jobs;
+- approval_events.
 
-### Para-Organizer
+Projects, Areas, Resources, Archives e Tasks continuam sendo projeções dessas entidades. Migrar dados existentes de modo idempotente. Credenciais permanecem separadas.
 
-- Remover a aba `ParaOrganizer Ingestão` de `DadosView`.
-- Criar view global `para-organizer`.
-- Adicionar item `Para-Organizer` abaixo de `Dados` na seção Sistema.
-- Reutilizar `DadosIngestao`; não duplicar o componente.
+## 7. Memória
 
-### Direção visual
+Renomear **Grafos** para **Memória**.
 
-- Reusar cores, tipografia, raios, bordas e densidade atuais.
-- Sem gradientes, efeitos neon, glassmorphism novo, ilustrações genéricas ou linguagem promocional de IA.
-- IA aparece como infraestrutura, não como decoração.
+Memória não é apenas um gráfico. É a camada que guarda, conecta e permite explorar o conhecimento do KI.
 
-## 7. Plano de construção
+### Seções
 
-| Bloco | Entrega | Executor | Concluído quando |
-|---|---|---|---|
-| 0 | Auditoria e PRD | IA | arquitetura atual e limites registrados |
-| 1 | Credenciais | IA | salvar, mascarar, testar e remover funcionam |
-| 2 | Navegação | IA | só existe uma entrada Para-Organizer |
-| 3 | Segurança | IA | nenhuma chave entra no bundle, KI ou Git |
-| 4 | Validação | IA | TypeScript e build passam |
+- **Mapa:** visualização relacional inspirada no grafo global do Obsidian.
+- **Nós:** lista pesquisável de tudo que compõe a memória.
+- **Relações:** criação, revisão e remoção de conexões.
+- **Órfãos:** itens sem conexões relevantes.
 
-**Ordem de corte:** credenciais opcionais de OpenAI/Anthropic; refinamentos informativos.  
-**Nunca cortar:** isolamento da chave, KI como SSOT, navegação única e validação.
+### Tipos de nós
 
-## 8. Prompts e protocolos executáveis
+Project, Area, Resource, Archive, Task, Markdown e Source.
 
-### Classificação futura pelo Gemini
+### Relações
 
-```text
-Você é o classificador do Më. Analise somente o conteúdo fornecido. Produza uma proposta, nunca uma ação definitiva. Retorne JSON válido com: title, para_category, parent_id, summary, key_points, suggested_tasks, relations, confidence e reasons. Projects exigem resultado e prazo; Areas são responsabilidades contínuas; Resources são referências/interesses; Archives são itens inativos. O corpo Markdown final deve ter no máximo 2.200 caracteres; frontmatter não entra no limite. Nunca invente caminho, hash, data ou relação. Marque dados ausentes como null. Aguarde aprovação humana antes de qualquer gravação ou movimentação.
-```
+`belongs_to`, `supports`, `produces`, `depends_on`, `references`, `task_for` e `related_to`.
 
-### Protocolo de implementação universal
+Cada relação possui origem, destino, tipo, peso, confiança, autor (`manual`, `ai`, `system`) e aprovação.
 
-```text
-Leia o PRD inteiro. Inspecione a implementação existente antes de editar. Preserve o design e a arquitetura. Faça mudanças mínimas, rastreáveis e reversíveis. Não crie dados fictícios para simular integrações reais. Não exponha credenciais. Após cada bloco, execute os testes disponíveis e relate: arquivos alterados, comportamento entregue, evidência de validação e limitações restantes.
-```
+### Visualização
 
-## 9. Registro de decisões
+- composição circular/radial com sensação de esfera;
+- force-directed graph semelhante à experiência do Obsidian;
+- zoom, pan, arrastar, busca, filtros e centralização;
+- clique abre painel lateral do nó;
+- cores por tipo e legenda;
+- tamanho pelo grau ponderado de conexões;
+- normalização logarítmica para impedir nós gigantes;
+- layout estável entre renderizações;
+- destaque de vizinhança e redução visual dos demais nós;
+- filtros para Tasks e quatro categorias PARA;
+- boa experiência em desktop e fallback legível no mobile.
 
-| Decisão | Razão e trade-off |
-|---|---|
-| KI permanece SSOT lógico | Evita banco concorrente; persistência real continua pendente |
-| Sem SQLite neste incremento | O projeto atual ainda opera em memória |
-| Credenciais fora do KI | Segredo técnico não é conhecimento pessoal |
-| `gemini-3.6-flash` fixo | Modelo solicitado e identificador oficial |
-| Limites não codificados | Cotas variam por conta e podem mudar |
-| `localStorage` apenas para rascunho | Permite testar; não serve como cofre de produção |
-| Uma única view Para-Organizer | Remove navegação ambígua sem duplicar código |
-| Estética atual preservada | Evita aparência genérica de produto de IA |
-| Frontmatter fora dos 2.200 caracteres | Mantém metadados ricos sem empobrecer o resumo |
+Grau de conexão representa conectividade, não “importância absoluta”. Não criar relações inventadas sem aprovação.
 
-## 10. Fora do escopo e evolução
+## 8. Jarvis
 
-Próximos incrementos: persistência real do KI; cofre servidor; proxy Gemini; entidades para arquivos originais e representantes Markdown; cálculo de hash; caminhos Mac/Windows; fila de aprovação; auditoria; geração dos `.md`; relações Tasks–PARA; grafo force-directed estilo Obsidian.
+Conectar o chat à credencial Gemini configurada.
 
-Uma reestruturação será necessária apenas quando houver persistência multiusuário, acesso fora do dispositivo, execução autônoma sobre arquivos locais ou credenciais de produção. Até lá, novas funções devem se integrar ao KI e às views existentes.
+- Remover a alegação falsa “Llama-3 Local”.
+- Mostrar o provedor/modelo realmente ativo.
+- Respostas consultivas podem ser diretas.
+- Criação ou alteração de dados deve produzir proposta revisável.
+- Jarvis consulta o KI e pode propor Tasks e relações.
+- Nunca alterar PARA, arquivos ou Memória silenciosamente.
+
+## 9. Segurança
+
+O projeto continua totalmente frontend.
+
+- chave nunca entra no Git, bundle, screenshots ou relatórios;
+- armazenamento local é aceito somente para protótipo pessoal;
+- recomendar chave sem billing e restrita à Gemini API e ao domínio;
+- avisar que uma chave persistente no navegador não é um cofre;
+- somente trechos selecionados são enviados ao Gemini;
+- arquivos originais permanecem locais.
+
+## 10. Loop de verificação obrigatório
+
+Para cada bloco:
+
+1. Mapear requisito para teste observável.
+2. Implementar a menor unidade coerente.
+3. Rodar typecheck, lint, testes e build.
+4. Abrir o app com Agent Browser.
+5. Testar caminho feliz, erro, vazio e recarregamento.
+6. Salvar screenshots e resumo em `artifacts/verification/`.
+7. Comparar o resultado com este PRD.
+8. Corrigir e repetir.
+
+Máximo de quatro ciclos por bloco. Se a mesma falha ocorrer duas vezes, investigar a causa em vez de repetir cegamente. Usar saída limpa de terminal e evitar despejos enormes de MCP, logs ou arquivos.
+
+## 11. Cenários de aceite
+
+1. ZIP do macOS preserva estrutura e remove lixo técnico.
+2. Filtros e checkboxes mantêm seleção correta.
+3. PDF textual e PDF escaneado geram conteúdo útil.
+4. Um lote Gemini inválido pode ser repetido sem perder os demais.
+5. Nenhum erro de JSON bruto chega ao usuário.
+6. Proposta pode ser editada, rejeitada ou aprovada por item.
+7. Reload mantém os registros aprovados.
+8. Markdown contém SHA-256 e caminhos, com corpo ≤2.200 caracteres.
+9. Arquivos originais não são armazenados.
+10. Memória mostra dados reais do KI, centralidade e relações.
+11. Jarvis usa Gemini e pede aprovação antes de gravar.
+12. Não existem erros no console.
+13. Typecheck, lint, testes e build passam.
+14. Agent Browser comprova o fluxo ponta a ponta com evidências.
+
+## 12. Definição de pronto
+
+O trabalho só termina quando todos os cenários de aceite estiverem verdes, o PRD refletir o estado final e houver relatório contendo:
+
+- arquivos alterados;
+- testes executados;
+- screenshots;
+- problemas encontrados e corrigidos;
+- limitações reais restantes;
+- commit final enviado à `main`.
+
+Não publicar o site. O Codex fará a publicação depois da atualização da `main`.

@@ -1,8 +1,10 @@
 import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import { extname, join, relative } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const outputDir = new URL('../dist/', import.meta.url);
 const projectDir = new URL('../', import.meta.url);
+const outputDirPath = fileURLToPath(outputDir);
 
 const mimeTypes = {
   '.css': 'text/css; charset=utf-8',
@@ -31,11 +33,11 @@ async function listFiles(directory) {
   return files;
 }
 
-const files = await listFiles(outputDir.pathname);
+const files = await listFiles(outputDirPath);
 const assets = {};
 
 for (const file of files) {
-  const path = `/${relative(outputDir.pathname, file).replaceAll('\\\\', '/')}`;
+  const path = `/${relative(outputDirPath, file).replaceAll('\\\\', '/')}`;
   assets[path] = {
     body: (await readFile(file)).toString('base64'),
     type: mimeTypes[extname(file)] ?? 'application/octet-stream',
