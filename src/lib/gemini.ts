@@ -95,10 +95,15 @@ export function buildMarkdownTwin(
 ): string {
   const cleanRoot = (sourceRootPath || '').trim();
   const relPath = item.relativePath.replace(/\\/g, '/');
-  
-  // Caminhos derivados
-  const pathMac = cleanRoot ? `${cleanRoot.replace(/\/+$/, '')}/${relPath}` : `/Users/Shared/${relPath}`;
-  const pathWindows = cleanRoot ? `C:\\${cleanRoot.replace(/^[a-zA-Z]:\\?/, '').replace(/\//g, '\\')}\\${relPath.replace(/\//g, '\\')}` : `C:\\Më\\${relPath.replace(/\//g, '\\')}`;
+
+  // O navegador não conhece caminhos absolutos. Só derivamos o sistema
+  // operacional explicitamente informado pelo usuário; o outro fica vazio.
+  const isMacRoot = cleanRoot.startsWith('/');
+  const isWindowsRoot = /^[a-zA-Z]:[\\/]/.test(cleanRoot);
+  const pathMac = isMacRoot ? `${cleanRoot.replace(/\/+$/, '')}/${relPath}` : '';
+  const pathWindows = isWindowsRoot
+    ? `${cleanRoot.replace(/[\\/]+$/, '').replace(/\//g, '\\')}\\${relPath.replace(/\//g, '\\')}`
+    : '';
 
   const frontmatter = [
     '---',
