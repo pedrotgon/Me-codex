@@ -2285,6 +2285,9 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const deleteNodes = (ids: string[]) => {
+    const relationIds = relations
+      .filter(r => ids.includes(r.sourceId) || ids.includes(r.targetId))
+      .map(r => r.id);
     setTasks(prev => prev.filter(t => !ids.includes(t.id)));
     setProjects(prev => prev.filter(p => !ids.includes(p.id)));
     setAreas(prev => prev.filter(a => !ids.includes(a.id)));
@@ -2294,6 +2297,7 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
     setRelations(prev => prev.filter(r => !ids.includes(r.sourceId) && !ids.includes(r.targetId)));
 
     deleteBatchFromStore('nodes', ids).catch(console.error);
+    deleteBatchFromStore('relations', relationIds).catch(console.error);
   };
 
   const addTask = (title: string, area: string = "Inbox", project?: string, additionalProps?: Partial<Task>) => {
@@ -2606,14 +2610,78 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
       };
       nodesToPersist.push(kiNode);
 
+      const sourceNodeId = `src-${item.id}`;
+      nodesToPersist.push({
+        id: sourceNodeId,
+        type: 'source',
+        title: item.name,
+        metadata: {
+          relative_path: item.relativePath,
+          source_root: sourceRootPath || '',
+          mime_type: item.mimeType,
+          size: item.size,
+          modified: item.modified,
+          sha256: item.sha256,
+        },
+        archived: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+
       // Markdown Twin
       if (item.markdown) {
+        const markdownNodeId = `md-${item.id}`;
         await putInStore('markdown_twins', {
-          id: `md-${item.id}`,
+          id: markdownNodeId,
           nodeId: item.id,
           title: item.title,
           filename: `${item.title.replace(/[^a-zA-Z0-9-_ ]/g, '').trim().slice(0, 80) || item.id}.md`,
           content: item.markdown,
+          createdAt: new Date().toISOString(),
+        });
+        nodesToPersist.push({
+          id: markdownNodeId,
+          type: 'markdown',
+          title: `${item.title}.md`,
+          metadata: { nodeId: item.id, original_file: item.name },
+          archived: false,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        });
+        relationsToPersist.push(
+          {
+            id: `rel-${sourceNodeId}-${markdownNodeId}`,
+            sourceId: sourceNodeId,
+            targetId: markdownNodeId,
+            type: 'produces',
+            weight: 1,
+            confidence: 100,
+            author: 'system',
+            approved: true,
+            createdAt: new Date().toISOString(),
+          },
+          {
+            id: `rel-${markdownNodeId}-${item.id}`,
+            sourceId: markdownNodeId,
+            targetId: item.id,
+            type: 'supports',
+            weight: 1,
+            confidence: 100,
+            author: 'system',
+            approved: true,
+            createdAt: new Date().toISOString(),
+          }
+        );
+      } else {
+        relationsToPersist.push({
+          id: `rel-${item.id}-${sourceNodeId}`,
+          sourceId: item.id,
+          targetId: sourceNodeId,
+          type: 'references',
+          weight: 1,
+          confidence: 100,
+          author: 'system',
+          approved: true,
           createdAt: new Date().toISOString(),
         });
       }
@@ -2802,7 +2870,9 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
     <StoreContext.Provider value={{
       currentView, setCurrentView,
       tasks, habits, projects, areas, resources,
-      addBatchItems,
+      nodes, relations, isDbLoaded,
+      addBatchItems, addKiIngestionBatch,
+      createRelation, approveRelation, deleteRelation,
       addTask, addProject, addArea, addResource, editArea, editResource, editTask, editProject, toggleTask, deleteTask, toggleHabit,
       jarvisMessage, setJarvisMessage, isJarvisOpen, setJarvisOpen,
       processJarvisCommand, archivedNodeIds, toggleArchiveNode, deleteNodes,
