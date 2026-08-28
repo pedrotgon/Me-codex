@@ -16,7 +16,8 @@ import {
   Plus, 
   Link2, 
   Sparkles,
-  Loader2
+  Loader2,
+  Network
 } from 'lucide-react';
 import { useStore } from '../../store';
 import { KiNode, KiRelation, NodeType, RelationType } from '../../lib/db';
@@ -53,7 +54,7 @@ const TYPE_CONFIG: Record<NodeType, { label: string; color: string; icon: any }>
 };
 
 export default function MemoriaMapa() {
-  const { nodes, relations, createRelation } = useStore();
+  const { nodes, relations, isDbLoaded, createRelation } = useStore();
 
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -262,6 +263,25 @@ export default function MemoriaMapa() {
         })
       );
 
+    const normalizedSearch = searchQuery.trim().toLocaleLowerCase('pt-BR');
+    const searchMatches = new Set(
+      graphNodes
+        .filter(node => !normalizedSearch || node.name.toLocaleLowerCase('pt-BR').includes(normalizedSearch))
+        .map(node => node.id)
+    );
+
+    const restoreSearchState = () => {
+      nodeSelection.style('opacity', node => !normalizedSearch || searchMatches.has(node.id) ? 1 : 0.12);
+      linkSelection.style('stroke-opacity', link => {
+        if (!normalizedSearch) return 0.6;
+        const sourceId = typeof link.source === 'string' ? link.source : link.source.id;
+        const targetId = typeof link.target === 'string' ? link.target : link.target.id;
+        return searchMatches.has(sourceId) || searchMatches.has(targetId) ? 0.75 : 0.04;
+      });
+    };
+
+    restoreSearchState();
+
     // Círculos dos Nós
     nodeSelection.append('circle')
       .attr('r', d => d.radius)
@@ -316,8 +336,7 @@ export default function MemoriaMapa() {
 
     svg.on('click', () => {
       setSelectedNodeId(null);
-      nodeSelection.style('opacity', 1);
-      linkSelection.style('stroke-opacity', 0.6);
+      restoreSearchState();
       linkSelection.style('stroke', 'rgba(27, 67, 50, 0.18)');
     });
 
@@ -334,7 +353,7 @@ export default function MemoriaMapa() {
     return () => {
       simulation.stop();
     };
-  }, [nodes, relations, activeFilters]);
+  }, [nodes, relations, activeFilters, searchQuery]);
 
   const handleZoom = (factor: number) => {
     if (svgRef.current && zoomRef.current) {
@@ -364,11 +383,23 @@ export default function MemoriaMapa() {
     setActiveFilters(prev => ({ ...prev, [type]: !prev[type] }));
   };
 
-  if (!nodes || nodes.length === 0) {
+  if (!isDbLoaded) {
     return (
       <div className="flex flex-col items-center justify-center h-[calc(100vh-140px)] min-h-[600px] bg-white rounded-2xl border border-forest/10 p-8 text-center">
         <Loader2 className="w-8 h-8 animate-spin text-forest mb-3" />
         <p className="text-[13px] font-bold text-ink">Carregando mapa relacional da Memória...</p>
+      </div>
+    );
+  }
+
+  if (!nodes.length) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[calc(100vh-140px)] min-h-[600px] bg-white rounded-2xl border border-forest/10 p-8 text-center">
+        <Network className="w-9 h-9 text-forest/45 mb-3" />
+        <p className="text-[14px] font-bold text-ink">Sua Memória ainda está vazia</p>
+        <p className="mt-1 max-w-md text-[12px] leading-relaxed text-ink/55">
+          Adicione itens ao método PARA ou aprove uma ingestão no Para-Organizer para formar os primeiros nós e relações.
+        </p>
       </div>
     );
   }
