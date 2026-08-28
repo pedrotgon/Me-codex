@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { GoogleGenAI } from '@google/genai';
+import { CREDENTIALS_STORAGE_KEY, GEMINI_MODEL } from '../../lib/credentials';
 import {
   CheckCircle2,
   Eye,
@@ -11,8 +12,7 @@ import {
   Wifi,
 } from 'lucide-react';
 
-const STORAGE_KEY = 'me_credentials_v1';
-const GEMINI_MODEL = 'gemini-3.6-flash';
+const STORAGE_KEY = CREDENTIALS_STORAGE_KEY;
 
 type ProviderId = 'gemini' | 'openai' | 'anthropic';
 
