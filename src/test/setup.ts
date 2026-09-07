@@ -1,5 +1,5 @@
 // Global setup for Vitest test environment
-// Polyfills for browser environment in jsdom
+import '@testing-library/jest-dom/vitest';
 
 if (typeof window !== 'undefined') {
   // ResizeObserver mock

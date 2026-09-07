@@ -32,7 +32,14 @@ import {
   FileCode2,
   Table as TableIcon
 } from 'lucide-react';
-import { SCREEN_REGISTRY, ScreenMetadata } from '../registry/screenRegistry';
+import { 
+  SCREEN_REGISTRY, 
+  ScreenMetadata, 
+  getScreenCount, 
+  getDesktopFrameCount, 
+  getMobileFrameCount, 
+  getTotalFrameCount 
+} from '../registry/screenRegistry';
 import { AtlasScreenRenderer } from '../registry/AtlasScreenRenderer';
 import { DEMO_TASKS, DEMO_PROJECTS, DEMO_AREAS, DEMO_RESOURCES, DEMO_HABITS, DEMO_NODES, DEMO_RELATIONS } from '../registry/fixtures';
 import { Button } from '../components/Button';
@@ -46,6 +53,7 @@ interface InfiniteCanvasProps {
 
 export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({ onNavigateToView }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   // Coordenadas e Zoom do Canvas Espacial
   const [pan, setPan] = useState<{ x: number; y: number }>({ x: 60, y: 60 });
@@ -121,10 +129,41 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({ onNavigateToView
     setZoom(0.65);
   };
 
-  const fitAll = () => {
-    setPan({ x: 40, y: 40 });
-    setZoom(0.28);
-  };
+  // Fit All Real: calcula limites reais do canvas e do conteúdo
+  const fitAll = useCallback(() => {
+    if (!containerRef.current) return;
+
+    const containerWidth = containerRef.current.clientWidth || 1440;
+    const containerHeight = containerRef.current.clientHeight || 900;
+
+    let contentWidth = 1800;
+    let contentHeight = 3200;
+
+    if (contentRef.current) {
+      const sw = contentRef.current.scrollWidth;
+      const sh = contentRef.current.scrollHeight;
+      if (sw > 100) contentWidth = sw;
+      if (sh > 100) contentHeight = sh;
+    }
+
+    const margin = 48;
+    const availableW = Math.max(containerWidth - margin * 2, 200);
+    const availableH = Math.max(containerHeight - margin * 2, 200);
+
+    const scaleX = availableW / contentWidth;
+    const scaleY = availableH / contentHeight;
+    const calculatedZoom = Math.min(scaleX, scaleY);
+
+    const clampedZoom = Math.min(1.5, Math.max(0.18, Number(calculatedZoom.toFixed(2))));
+    const calculatedPanX = Math.round((containerWidth - contentWidth * clampedZoom) / 2);
+    const calculatedPanY = Math.max(margin, Math.round((containerHeight - contentHeight * clampedZoom) / 2));
+
+    setZoom(clampedZoom);
+    setPan({
+      x: calculatedPanX > 0 ? calculatedPanX : margin,
+      y: calculatedPanY > 0 ? calculatedPanY : margin,
+    });
+  }, []);
 
   const fitSelection = () => {
     if (!selectedScreen) return;
@@ -132,9 +171,22 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({ onNavigateToView
     setZoom(0.7);
   };
 
-  // Renderizador Fiel de Telas Reais do Produto (Zero fallback genérico)
-  const renderScreenContent = (screen: ScreenMetadata, viewport: 'desktop' | 'mobile') => {
-    return <AtlasScreenRenderer screenId={screen.id} viewport={viewport} />;
+  // Renderizador Fiel de Previews Leves e Views Live Sob Demanda (Zero fallback genérico)
+  const renderScreenContent = (screen: ScreenMetadata, viewport: 'desktop' | 'mobile', isSelected: boolean) => {
+    if (isSelected) {
+      return <AtlasScreenRenderer screenId={screen.id} viewport={viewport} />;
+    }
+
+    return (
+      <div className="w-full h-full relative bg-[#fbfbfb] flex items-center justify-center">
+        <img
+          src={`/previews/${screen.id}-${viewport}.png`}
+          alt={`${screen.title} - ${viewport}`}
+          className="w-full h-full object-cover object-top select-none"
+          loading="lazy"
+        />
+      </div>
+    );
   };
 
   return (
@@ -161,7 +213,7 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({ onNavigateToView
               Screen Atlas — Infinite Canvas Workspace
             </h1>
             <p className="text-[11px] text-[#696969]">
-              Quadro branco espacial 2D: {SCREEN_REGISTRY.length} telas • 56 frames-base (Desktop + Mobile)
+              Quadro branco espacial 2D: {getScreenCount()} telas • {getTotalFrameCount()} frames-base (Desktop + Mobile)
             </p>
           </div>
         </div>
@@ -186,7 +238,7 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({ onNavigateToView
             onChange={(e) => setJourneyFilter(e.target.value)}
             className="text-xs bg-[#fbfbfb] border border-[#e8e8e8] rounded-[6px] px-2 py-1.5 text-[#070707]"
           >
-            <option value="all">Todas as Jornadas ({SCREEN_REGISTRY.length})</option>
+            <option value="all">Todas as Jornadas ({getScreenCount()})</option>
             {journeys.map(j => (
               <option key={j} value={j}>{j}</option>
             ))}
@@ -198,19 +250,19 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({ onNavigateToView
               onClick={() => setViewportFilter('all')}
               className={`px-2 py-1 text-xs font-medium rounded-[4px] transition ${viewportFilter === 'all' ? 'bg-white text-[#070707] shadow-2xs' : 'text-[#696969]'}`}
             >
-              Todos (56)
+              Todos ({getTotalFrameCount()})
             </button>
             <button
               onClick={() => setViewportFilter('desktop')}
               className={`flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-[4px] transition ${viewportFilter === 'desktop' ? 'bg-white text-[#070707] shadow-2xs' : 'text-[#696969]'}`}
             >
-              <Monitor className="w-3 h-3" /> Desktop (28)
+              <Monitor className="w-3 h-3" /> Desktop ({getDesktopFrameCount()})
             </button>
             <button
               onClick={() => setViewportFilter('mobile')}
               className={`flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-[4px] transition ${viewportFilter === 'mobile' ? 'bg-white text-[#070707] shadow-2xs' : 'text-[#696969]'}`}
             >
-              <Smartphone className="w-3 h-3" /> Mobile (28)
+              <Smartphone className="w-3 h-3" /> Mobile ({getMobileFrameCount()})
             </button>
           </div>
         </div>
@@ -227,7 +279,10 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({ onNavigateToView
             <button onClick={zoomOut} className="p-1 hover:text-[#0c2b15] text-[#696969]" aria-label="Diminuir zoom" title="Diminuir zoom">
               <ZoomOut className="w-3.5 h-3.5" />
             </button>
-            <span className="font-mono text-xs px-2 min-w-[48px] text-center">
+            <span 
+              className="font-mono text-xs px-2 min-w-[48px] text-center"
+              data-testid="zoom-indicator"
+            >
               {Math.round(zoom * 100)}%
             </span>
             <button onClick={zoomIn} className="p-1 hover:text-[#0c2b15] text-[#696969]" aria-label="Aumentar zoom" title="Aumentar zoom">
@@ -250,6 +305,7 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({ onNavigateToView
         className={`w-full h-full cursor-${isPanning ? 'grabbing' : 'grab'} overflow-hidden relative`}
       >
         <div
+          ref={contentRef}
           className="absolute origin-top-left transition-transform duration-75 ease-out"
           style={{
             transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
@@ -293,7 +349,10 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({ onNavigateToView
                         className="screen-frame-container flex flex-col gap-3 p-4 bg-[#fbfbfb] rounded-[14px] border border-[#e8e8e8] shadow-2xs"
                       >
                         {/* Identificador da Tela */}
-                        <div className="flex items-center justify-between text-xs font-semibold text-[#0c2b15] pb-2 border-b border-[#e8e8e8]">
+                        <div 
+                          onClick={() => setSelectedScreenId(screen.id)}
+                          className="flex items-center justify-between text-xs font-semibold text-[#0c2b15] pb-2 border-b border-[#e8e8e8] cursor-pointer hover:text-[#7399c6]"
+                        >
                           <span className="truncate max-w-[280px]">{screen.title}</span>
                           <span className="font-mono text-[10px] text-[#696969]">{screen.id}</span>
                         </div>
@@ -312,7 +371,7 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({ onNavigateToView
                               onSelect={() => setSelectedScreenId(screen.id)}
                               onOpenLive={() => onNavigateToView(screen.route)}
                             >
-                              {renderScreenContent(screen, 'desktop')}
+                              {renderScreenContent(screen, 'desktop', isSelected)}
                             </ScreenFrame>
                           )}
 
@@ -328,7 +387,7 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({ onNavigateToView
                               onSelect={() => setSelectedScreenId(screen.id)}
                               onOpenLive={() => onNavigateToView(screen.route)}
                             >
-                              {renderScreenContent(screen, 'mobile')}
+                              {renderScreenContent(screen, 'mobile', isSelected)}
                             </ScreenFrame>
                           )}
                         </div>

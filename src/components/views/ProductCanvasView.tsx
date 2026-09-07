@@ -15,7 +15,13 @@ import {
 import { useStore, View } from '../../store';
 import { InfiniteCanvas } from '../../design-system/canvas/InfiniteCanvas';
 import { InteractivePrototypes } from '../../design-system/prototypes/InteractivePrototypes';
-import { SCREEN_REGISTRY } from '../../design-system/registry/screenRegistry';
+import { 
+  SCREEN_REGISTRY, 
+  getScreenCount, 
+  getDesktopFrameCount, 
+  getMobileFrameCount, 
+  getTotalFrameCount 
+} from '../../design-system/registry/screenRegistry';
 import { Badge } from '../../design-system/components/Badge';
 import { Button } from '../../design-system/components/Button';
 
@@ -36,7 +42,7 @@ export default function ProductCanvasView() {
               Screen Atlas & Design System
             </div>
             <div className="text-[10px] font-mono text-[#696969]">
-              BCG + Goldman Sachs v2.0 • 28 Telas • 56 Frames Base
+              BCG + Goldman Sachs v2.0 • {getScreenCount()} Telas • {getTotalFrameCount()} Frames Base
             </div>
           </div>
         </div>
@@ -76,7 +82,9 @@ export default function ProductCanvasView() {
         </div>
 
         <div className="flex items-center gap-2">
-          <Badge variant="forest">56 Frames Live (28 Desktop + 28 Mobile)</Badge>
+          <Badge variant="forest">
+            {getTotalFrameCount()} Frames Live ({getDesktopFrameCount()} Desktop + {getMobileFrameCount()} Mobile)
+          </Badge>
           <Badge variant="neutral">Contraste BCG + Goldman</Badge>
         </div>
       </div>
