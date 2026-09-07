@@ -482,7 +482,7 @@ export default function DadosRelacional() {
           <div className="flex flex-col gap-2 pointer-events-auto">
              <button 
                onClick={() => setIsFiltersOpen(!isFiltersOpen)}
-               className="flex items-center justify-between bg-black/40 backdrop-blur-md rounded-xl shadow-lg border border-white/10 p-3 w-[200px] hover:bg-white/5 transition-colors"
+               className="flex items-center justify-between bg-[#18181b] rounded-xl shadow-lg border border-white/10 p-3 w-[200px] hover:bg-white/5 transition-colors"
              >
                 <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-white/50">
                   <Filter className="w-3.5 h-3.5" />
@@ -494,7 +494,7 @@ export default function DadosRelacional() {
              </button>
              
              {isFiltersOpen && (
-                <div className="bg-black/60 backdrop-blur-xl rounded-2xl shadow-lg border border-white/10 p-4 w-[200px] animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="bg-[#18181b] rounded-2xl shadow-lg border border-white/10 p-4 w-[200px] animate-in fade-in slide-in-from-top-2 duration-200">
                   <div className="space-y-2">
                     {[
                       { id: 'areas', label: 'Áreas', color: '#D95319', icon: Layers },
@@ -526,7 +526,7 @@ export default function DadosRelacional() {
 
           {/* Selected Node Details Card */}
           {selectedNode && (
-            <div className="pointer-events-auto bg-black/80 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/10 overflow-y-auto max-h-full animate-in fade-in slide-in-from-left-4 duration-300 custom-scrollbar flex-shrink-0">
+            <div className="pointer-events-auto bg-[#18181b] rounded-2xl shadow-2xl border border-white/10 overflow-y-auto max-h-full animate-in fade-in slide-in-from-left-4 duration-300 custom-scrollbar flex-shrink-0">
               <div className="h-2 w-full shrink-0" style={{ backgroundColor: selectedNode.color }} />
               <div className="p-5 flex flex-col gap-4">
                 <div className="flex items-start justify-between">
@@ -695,7 +695,7 @@ export default function DadosRelacional() {
 
         {/* Floating Controls */}
         <div className="absolute bottom-6 right-6 flex flex-col gap-2 z-10">
-          <div className="bg-black/40 backdrop-blur-md rounded-xl shadow-lg border border-white/10 p-1 flex flex-col gap-1 pointer-events-auto">
+          <div className="bg-[#18181b] rounded-xl shadow-lg border border-white/10 p-1 flex flex-col gap-1 pointer-events-auto">
             <button onClick={handleZoomIn} className="p-2 hover:bg-white/10 rounded-lg text-white/70 transition-colors" title="Zoom In">
               <ZoomIn className="w-4 h-4" />
             </button>

@@ -61,7 +61,7 @@ export default function ProductCanvasView() {
                 : 'text-[#696969] hover:text-[#070707]'
             }`}
           >
-            <Play className="w-3.5 h-3.5" /> 10 Protótipos E2E Reais
+            <Play className="w-3.5 h-3.5" /> 10 Protótipos & Validações
           </button>
           <button
             onClick={() => setActiveTab('spec')}
@@ -76,8 +76,8 @@ export default function ProductCanvasView() {
         </div>
 
         <div className="flex items-center gap-2">
-          <Badge variant="forest">56 Frames Base</Badge>
-          <Badge variant="goldman">WCAG AA 100%</Badge>
+          <Badge variant="forest">56 Frames Live (28 Desktop + 28 Mobile)</Badge>
+          <Badge variant="neutral">Contraste BCG + Goldman</Badge>
         </div>
       </div>
 

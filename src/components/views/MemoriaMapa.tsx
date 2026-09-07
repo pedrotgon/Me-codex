@@ -414,11 +414,11 @@ export default function MemoriaMapa() {
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             placeholder="Localizar nó no mapa..."
-            className="h-9 w-52 pl-8 pr-3 rounded-xl bg-white/90 backdrop-blur-md border border-forest/15 text-[12px] font-medium text-ink placeholder:text-forest/40 focus:outline-none focus:ring-2 focus:ring-forest/20 shadow-xs"
+            className="h-9 w-52 pl-8 pr-3 rounded-xl bg-white border border-forest/15 text-[12px] font-medium text-ink placeholder:text-forest/40 focus:outline-none focus:ring-2 focus:ring-forest/20 shadow-xs"
           />
         </div>
 
-        <div className="flex flex-wrap items-center gap-1 bg-white/90 backdrop-blur-md p-1 rounded-xl border border-forest/15 shadow-xs">
+        <div className="flex flex-wrap items-center gap-1 bg-white p-1 rounded-xl border border-forest/15 shadow-xs">
           {(Object.entries(TYPE_CONFIG) as [NodeType, typeof TYPE_CONFIG[NodeType]][]).map(([type, cfg]) => {
             const active = activeFilters[type];
             return (
@@ -451,7 +451,7 @@ export default function MemoriaMapa() {
 
       {/* Painel Lateral de Inspeção do Nó Selecionado */}
       {selectedNode && (
-        <div className="absolute top-4 right-4 z-20 w-80 max-h-[calc(100%-32px)] bg-white/95 backdrop-blur-xl border border-forest/15 rounded-2xl shadow-xl flex flex-col overflow-hidden animate-in fade-in slide-in-from-right-4 duration-200">
+        <div className="absolute top-4 right-4 z-20 w-80 max-h-[calc(100%-32px)] bg-white border border-forest/15 rounded-2xl shadow-xl flex flex-col overflow-hidden animate-in fade-in slide-in-from-right-4 duration-200">
           <div className="h-1.5 w-full" style={{ backgroundColor: TYPE_CONFIG[selectedNode.type]?.color || '#1b4332' }} />
           
           <div className="p-4 flex items-start justify-between border-b border-forest/10">
@@ -583,7 +583,7 @@ export default function MemoriaMapa() {
       )}
 
       {/* Controles Flutuantes Inferiores: Zoom & Centralizar */}
-      <div className="absolute bottom-4 right-4 z-10 flex flex-col gap-1 bg-white/90 backdrop-blur-md p-1 rounded-xl border border-forest/15 shadow-sm">
+      <div className="absolute bottom-4 right-4 z-10 flex flex-col gap-1 bg-white p-1 rounded-xl border border-forest/15 shadow-sm">
         <button
           type="button"
           onClick={() => handleZoom(1.25)}

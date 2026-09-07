@@ -39,7 +39,7 @@ export default function WeeksView() {
 
       {/* Hero Stats */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-2 bg-gradient-to-tr from-forest to-[#1A3A32] rounded-[24px] p-8 text-white relative overflow-hidden shadow-sm">
+        <div className="lg:col-span-2 bg-[#0c2b15] rounded-[24px] p-8 text-white relative overflow-hidden shadow-sm">
           <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '16px 16px' }}></div>
           <div className="relative z-10 flex flex-col justify-between h-full min-h-[140px]">
             <div>

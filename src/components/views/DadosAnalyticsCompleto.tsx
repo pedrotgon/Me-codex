@@ -15,7 +15,7 @@ const FOREST_COLORS = ['#0f2922', '#1a3c34', '#2d5c50', '#4a8572', '#7fb59f'];
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-white/95 backdrop-blur-sm border border-forest/10 p-3 rounded-xl shadow-xl flex flex-col gap-1 min-w-[150px]">
+      <div className="bg-white border border-forest/10 p-3 rounded-xl shadow-xl flex flex-col gap-1 min-w-[150px]">
         <p className="text-[11px] font-bold uppercase tracking-wider text-ink/50 mb-1">{label}</p>
         {payload.map((entry: any, index: number) => (
           <div key={index} className="flex items-center justify-between gap-4">
@@ -169,7 +169,7 @@ export default function DadosAnalyticsCompleto() {
           <div className="text-[12px] font-bold text-ink/40 uppercase tracking-wider">Velocidade de Ingestão</div>
         </div>
 
-        <div className="bg-white border border-forest/10 p-5 rounded-2xl shadow-sm relative overflow-hidden group bg-gradient-to-br from-forest to-forest-800 text-white">
+        <div className="bg-[#0c2b15] border border-forest/10 p-5 rounded-2xl shadow-sm relative overflow-hidden group text-white">
           <div className="absolute -right-6 -bottom-6 opacity-[0.1] group-hover:scale-125 transition-transform duration-500">
              <Clock className="w-32 h-32" />
           </div>

@@ -21,7 +21,7 @@ export default function Header() {
   }, []);
 
   return (
-    <header className="sticky top-0 z-20 h-[72px] bg-[#fbfbfb]/95 backdrop-blur-md border-b border-[#e5e5e5]">
+    <header className="sticky top-0 z-20 h-[72px] bg-white border-b border-[#e5e5e5]">
       <div className="h-full flex items-center gap-4 px-6 lg:px-8 max-w-[1400px] mx-auto w-full">
         <button onClick={toggleSidebar} className="p-2 -ml-2 rounded-[10px] hover:bg-black/5 text-[#0c2b15] transition-colors">
           <Menu className="w-5 h-5" />

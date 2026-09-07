@@ -24,8 +24,12 @@ interface SkillFile {
   content: string;
 }
 
-export default function ParaOrganizerSkillView() {
-  const [activeTab, setActiveTab] = useState<'overview' | 'content' | 'upload'>('overview');
+interface ParaOrganizerSkillViewProps {
+  initialTab?: 'overview' | 'content' | 'upload';
+}
+
+export default function ParaOrganizerSkillView({ initialTab = 'overview' }: ParaOrganizerSkillViewProps = {}) {
+  const [activeTab, setActiveTab] = useState<'overview' | 'content' | 'upload'>(initialTab);
   const [selectedFile, setSelectedFile] = useState<string>('SKILL.md');
   const [isDropdownOpen, setIsDropdownOpen] = useState<boolean>(false);
   const [copied, setCopied] = useState<boolean>(false);

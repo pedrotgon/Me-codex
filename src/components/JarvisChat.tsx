@@ -19,9 +19,9 @@ import { useStore } from '../store';
 import { getGeminiCredential } from '../lib/credentials';
 import { JarvisMessage, JarvisActionProposal, processJarvisMessage } from '../lib/jarvis';
 
-export default function JarvisChat() {
+export default function JarvisChat({ embedded = false }: { embedded?: boolean } = {}) {
   const { 
-    isJarvisOpen, 
+    isJarvisOpen: storeJarvisOpen, 
     setJarvisOpen, 
     nodes, 
     addTask, 
@@ -29,6 +29,7 @@ export default function JarvisChat() {
     createRelation 
   } = useStore();
 
+  const isJarvisOpen = embedded ? true : storeJarvisOpen;
   const [input, setInput] = useState('');
   const [isExpanded, setIsExpanded] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -45,13 +46,19 @@ export default function JarvisChat() {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    if (isJarvisOpen) {
+      scrollToBottom();
+    }
+  }, [messages, isJarvisOpen]);
+
   useEffect(() => {
     setCredential(getGeminiCredential());
   }, [isJarvisOpen]);
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isLoading]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,22 +88,20 @@ export default function JarvisChat() {
         proposalStatus: response.proposal ? 'pending' : undefined,
       };
       setMessages(prev => [...prev, jarvisMsg]);
-    } catch (err) {
-      setMessages(prev => [
-        ...prev,
-        {
-          id: `jarvis-${Date.now()}`,
-          sender: 'jarvis',
-          text: 'Houve uma instabilidade momentânea na conexão. Como posso tentar ajudar novamente?',
-          timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-        },
-      ]);
+    } catch (err: any) {
+      const errorMsg: JarvisMessage = {
+        id: `err-${Date.now()}`,
+        sender: 'jarvis',
+        text: 'Desculpe, ocorreu um erro ao processar sua solicitação com o modelo Gemini.',
+        timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+      };
+      setMessages(prev => [...prev, errorMsg]);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleApproveProposal = (msgId: string, proposal: JarvisActionProposal) => {
+  const handleApproveProposal = async (msgId: string, proposal: JarvisActionProposal) => {
     if (proposal.type === 'create_task') {
       addTask(proposal.title, proposal.category || 'Inbox', undefined, {
         priority: proposal.priority || 'P 2',
@@ -126,7 +131,7 @@ export default function JarvisChat() {
     <>
       {/* Botão Flutuante de Abertura */}
       <AnimatePresence>
-        {!isJarvisOpen && (
+        {!embedded && !isJarvisOpen && (
           <motion.button
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
@@ -145,13 +150,16 @@ export default function JarvisChat() {
       <AnimatePresence>
         {isJarvisOpen && (
           <motion.div
-            initial={{ opacity: 0, y: 20, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 20, scale: 0.95 }}
+            initial={embedded ? false : { opacity: 0, y: 20, scale: 0.95 }}
+            animate={embedded ? false : { opacity: 1, y: 0, scale: 1 }}
+            exit={embedded ? false : { opacity: 0, y: 20, scale: 0.95 }}
             transition={{ type: 'spring', bounce: 0.15, duration: 0.35 }}
-            className={`fixed bottom-6 right-6 z-50 bg-white/98 backdrop-blur-2xl shadow-2xl flex flex-col border border-forest/15 rounded-3xl overflow-hidden text-ink ${
-              isExpanded ? 'w-[480px] h-[720px]' : 'w-[400px] h-[580px]'
-            } max-w-[calc(100vw-32px)] max-h-[calc(100vh-48px)]`}
+            className={embedded 
+              ? "relative w-full h-full bg-white shadow-md flex flex-col border border-forest/15 rounded-2xl overflow-hidden text-ink"
+              : `fixed bottom-6 right-6 z-50 bg-white shadow-2xl flex flex-col border border-forest/15 rounded-3xl overflow-hidden text-ink ${
+                isExpanded ? 'w-[480px] h-[720px]' : 'w-[400px] h-[580px]'
+              } max-w-[calc(100vw-32px)] max-h-[calc(100vh-48px)]`
+            }
           >
             {/* Header com Provedor / Modelo Ativo */}
             <div className="h-16 flex items-center justify-between px-5 border-b border-forest/10 bg-forest/5 shrink-0">

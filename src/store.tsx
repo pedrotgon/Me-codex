@@ -67,7 +67,7 @@ export interface Resource {
 
 export type View = 'home' | 'quick-capture' | 'tasks' | 'take-action' | 'projects' | 'areas' | 'recursos' | 'arquivados' | 'inbox' | 'habitos' | 'weeks' | 'dados' | 'diagrama' | 'memoria' | 'journal' | 'analytics-completo' | 'para-organizer' | 'canvas';
 
-interface StoreState {
+export interface StoreState {
   currentView: View;
   setCurrentView: (view: View) => void;
   tasks: Task[];
@@ -115,7 +115,7 @@ interface StoreState {
   toggleSidebar: () => void;
 }
 
-const StoreContext = createContext<StoreState | undefined>(undefined);
+export const StoreContext = createContext<StoreState | undefined>(undefined);
 
 const initialTasks: Task[] = [
   {

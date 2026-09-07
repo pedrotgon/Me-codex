@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Zap } from 'lucide-react';
 import { useStore } from '../store';
+import { Button } from '../design-system/components';
 
 export default function QuickCapture() {
   const [text, setText] = useState('');
@@ -14,28 +15,30 @@ export default function QuickCapture() {
   };
 
   return (
-    <section className="bg-white rounded-3xl p-6 sm:p-8 mb-6 shrink-0 relative overflow-hidden border border-black/5 shadow-sm">
-      <div className="flex items-center gap-3 mb-6 relative">
-        <div className="w-10 h-10 rounded-xl bg-white border border-black/5 text-emerald-500 flex items-center justify-center shadow-sm">
-          <Zap className="w-5 h-5" />
+    <section className="bg-white rounded-[12px] p-6 mb-6 shrink-0 relative overflow-hidden border border-[#e8e8e8] shadow-2xs">
+      <div className="flex items-center gap-3 mb-5 relative">
+        <div className="w-9 h-9 rounded-[8px] bg-[#0c2b15] text-white flex items-center justify-center shadow-xs">
+          <Zap className="w-4 h-4" />
         </div>
-        <h3 className="font-bold text-[18px] text-ink">Captura Rápida</h3>
+        <h3 className="font-serif text-[18px] font-normal text-[#0c2b15]">Captura Rápida</h3>
       </div>
       
-      <form onSubmit={handleSubmit} className="relative">
+      <form onSubmit={handleSubmit} className="relative flex items-center">
         <input 
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder="O que está na sua mente? ( / para focar )" 
-          className="w-full h-16 pl-6 pr-28 rounded-2xl bg-white border border-black/5 text-[15px] font-medium placeholder:text-ink/30 focus:outline-none focus:ring-2 focus:ring-forest/20 focus:border-forest/30 transition-shadow shadow-sm text-ink" 
+          className="w-full h-12 pl-4 pr-24 rounded-[8px] bg-[#fbfbfb] border border-[#e8e8e8] text-[14px] font-sans placeholder:text-[#696969]/60 focus:outline-none focus:ring-1 focus:ring-[#0c2b15] focus:border-[#0c2b15] focus:bg-white transition text-[#070707]" 
         />
-        <div className="absolute right-2 top-1/2 -translate-y-1/2">
-          <button 
+        <div className="absolute right-1.5">
+          <Button 
             type="submit"
-            className="h-12 px-6 rounded-xl bg-white text-forest border border-black/5 text-[14px] font-bold hover:bg-forest/5 active:scale-[.98] transition shadow-sm"
+            variant="primary"
+            size="sm"
+            disabled={!text.trim()}
           >
             Enviar
-          </button>
+          </Button>
         </div>
       </form>
     </section>

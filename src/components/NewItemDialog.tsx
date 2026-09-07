@@ -7,9 +7,10 @@ interface NewItemDialogProps {
   onConfirm: (value: string) => void;
   title: string;
   placeholder?: string;
+  embedded?: boolean;
 }
 
-export default function NewItemDialog({ isOpen, onClose, onConfirm, title, placeholder }: NewItemDialogProps) {
+export default function NewItemDialog({ isOpen, onClose, onConfirm, title, placeholder, embedded = false }: NewItemDialogProps) {
   const [value, setValue] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -23,7 +24,7 @@ export default function NewItemDialog({ isOpen, onClose, onConfirm, title, place
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+    <div className={embedded ? "relative w-full h-full bg-black/20 flex items-center justify-center p-6 rounded-2xl" : "fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"}>
       <div className="bg-white rounded-xl shadow-xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         <div className="px-4 py-3 border-b border-black/5 flex items-center justify-between">
           <h3 className="font-bold text-ink">{title}</h3>

@@ -92,7 +92,7 @@ export default function MemoriaNos() {
       {/* Tabela de Nós */}
       <div className="flex-1 overflow-auto">
         <table className="w-full text-left border-collapse text-[12px]">
-          <thead className="sticky top-0 bg-nude/80 backdrop-blur-md z-10 border-b border-forest/10 text-[10px] font-bold text-ink/50 uppercase tracking-wider">
+          <thead className="sticky top-0 bg-nude z-10 border-b border-forest/10 text-[10px] font-bold text-ink/50 uppercase tracking-wider">
             <tr>
               <th className="py-3 px-4">Tipo</th>
               <th className="py-3 px-4">ID</th>

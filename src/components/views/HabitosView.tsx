@@ -66,7 +66,7 @@ export default function HabitosView() {
           <p className="text-[12px] text-ink/40 font-medium mt-3 flex items-center gap-1.5"><CalendarDays className="w-3.5 h-3.5" /> Média de 7 dias</p>
         </div>
         
-        <div className="bg-gradient-to-br from-forest to-[#1a3c34] rounded-[24px] p-6 shadow-sm relative overflow-hidden text-white flex flex-col justify-between">
+        <div className="bg-[#0c2b15] rounded-[24px] p-6 shadow-sm relative overflow-hidden text-white flex flex-col justify-between">
           <div className="absolute inset-0 opacity-[0.05]" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '16px 16px' }}></div>
           <div>
             <div className="flex items-center justify-between mb-2">

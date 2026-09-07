@@ -3,6 +3,7 @@ import { useStore } from '../../store';
 import { Library, Search, FileText, Link as LinkIcon, Image as ImageIcon, Video, Folder, Calendar, ExternalLink, ArrowUpRight, BarChart3, Database, LayoutGrid, List, ChevronDown, Check, X } from 'lucide-react';
 import ViewHeader from '../ViewHeader';
 import NewItemDialog from '../NewItemDialog';
+import { Button, MetricCard } from '../../design-system/components';
 
 const toArray = (val: any): string[] => {
   if (!val || val === '-' || val === 'Inbox') return [];
@@ -101,9 +102,9 @@ function ResourceDetailModal({ resource, onClose, areas, projects, tasks, editRe
   };
 
   return (
-    <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50 flex items-center justify-center p-4 sm:p-6" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4 sm:p-6" onClick={onClose}>
       <div className="bg-white rounded-[24px] shadow-2xl w-full max-w-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300 flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
-        <div className="border-b border-forest/10 p-6 sm:p-8 flex items-start gap-5 bg-gradient-to-b from-[#f8f9fa] to-white shrink-0 relative">
+        <div className="border-b border-forest/10 p-6 sm:p-8 flex items-start gap-5 bg-[#fbfaf7] shrink-0 relative">
           <button onClick={onClose} className="absolute top-4 right-4 p-2 rounded-full hover:bg-black/5 text-ink/40 hover:text-ink transition-colors">
             <X className="w-5 h-5" />
           </button>
@@ -228,49 +229,22 @@ export default function RecursosView() {
         description="Repositório centralizado de referências, materiais e arquivos."
         icon={Library}
         action={
-          <button onClick={() => setIsDialogOpen(true)} className="h-10 px-5 rounded-xl bg-forest text-white text-[13px] font-bold hover:bg-forest/90 transition shadow-md flex items-center gap-2">
-            <PlusIcon /> Adicionar Recurso
-          </button>
+          <Button 
+            variant="primary" 
+            size="sm" 
+            onClick={() => setIsDialogOpen(true)}
+          >
+            + Adicionar Recurso
+          </Button>
         }
       />
 
       {/* KPI Bento Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white border border-forest/10 p-5 rounded-2xl shadow-sm relative overflow-hidden group">
-          <div className="absolute -right-4 -top-4 w-24 h-24 bg-forest/5 rounded-full transition-transform group-hover:scale-150"></div>
-          <div className="w-10 h-10 rounded-xl bg-forest/10 text-forest flex items-center justify-center mb-4">
-            <Library className="w-5 h-5" />
-          </div>
-          <div className="text-[32px] font-black tracking-tight text-ink mb-1">{total}</div>
-          <div className="text-[12px] font-bold text-ink/40 uppercase tracking-wider">Total de Recursos</div>
-        </div>
-        
-        <div className="bg-white border border-forest/10 p-5 rounded-2xl shadow-sm relative overflow-hidden group">
-          <div className="absolute -right-4 -top-4 w-24 h-24 bg-amber-500/5 rounded-full transition-transform group-hover:scale-150"></div>
-          <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center mb-4">
-            <Folder className="w-5 h-5" />
-          </div>
-          <div className="text-[32px] font-black tracking-tight text-ink mb-1">{inAreas}</div>
-          <div className="text-[12px] font-bold text-ink/40 uppercase tracking-wider">Vínculos por Área</div>
-        </div>
-
-        <div className="bg-white border border-forest/10 p-5 rounded-2xl shadow-sm relative overflow-hidden group">
-          <div className="absolute -right-4 -top-4 w-24 h-24 bg-blue-500/5 rounded-full transition-transform group-hover:scale-150"></div>
-          <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-600 flex items-center justify-center mb-4">
-            <Database className="w-5 h-5" />
-          </div>
-          <div className="text-[32px] font-black tracking-tight text-ink mb-1">{withProjects}</div>
-          <div className="text-[12px] font-bold text-ink/40 uppercase tracking-wider">Vínculos em Projetos</div>
-        </div>
-
-        <div className="bg-white border border-forest/10 p-5 rounded-2xl shadow-sm relative overflow-hidden group">
-          <div className="absolute -right-4 -top-4 w-24 h-24 bg-purple-500/5 rounded-full transition-transform group-hover:scale-150"></div>
-          <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-600 flex items-center justify-center mb-4">
-            <BarChart3 className="w-5 h-5" />
-          </div>
-          <div className="text-[32px] font-black tracking-tight text-ink mb-1">{linkCount}</div>
-          <div className="text-[12px] font-bold text-ink/40 uppercase tracking-wider">Links Externos</div>
-        </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <MetricCard label="Total de Recursos" value={total} subtext="No cofre" />
+        <MetricCard label="Vínculos por Área" value={inAreas} subtext="Em áreas ativas" />
+        <MetricCard label="Vínculos em Projetos" value={withProjects} subtext="Em andamento" />
+        <MetricCard label="Links Externos" value={linkCount} subtext="Referências salvas" />
       </div>
       
       <div className="bg-white/50 border border-forest/10 rounded-2xl p-5 flex flex-col flex-1 shadow-sm min-h-0">

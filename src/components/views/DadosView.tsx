@@ -7,8 +7,12 @@ import DadosCortex from './DadosCortex';
 import DadosRegistros from './DadosRegistros';
 import CredentialsView from './CredentialsView';
 
-export default function DadosView() {
-  const [activeTab, setActiveTab] = useState<'credentials' | 'analytics' | 'explorador' | 'cortex' | 'registros'>('analytics');
+interface DadosViewProps {
+  initialTab?: 'credentials' | 'analytics' | 'explorador' | 'cortex' | 'registros';
+}
+
+export default function DadosView({ initialTab = 'analytics' }: DadosViewProps = {}) {
+  const [activeTab, setActiveTab] = useState<'credentials' | 'analytics' | 'explorador' | 'cortex' | 'registros'>(initialTab);
 
   return (
     <div className={`flex flex-col gap-6 w-full max-w-none h-full`}>

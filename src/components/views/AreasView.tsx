@@ -5,6 +5,7 @@ import AreasGrid from '../AreasGrid';
 import AreaDetailView from './AreaDetailView';
 import { useStore } from '../../store';
 import NewItemDialog from '../NewItemDialog';
+import { Button } from '../../design-system/components';
 
 export default function AreasView() {
   const { addArea, selectedAreaId, setSelectedAreaId, areas } = useStore();
@@ -29,9 +30,9 @@ export default function AreasView() {
         description="Gerencie as áreas de responsabilidade que você deseja manter ao longo do tempo."
         icon={Layers}
         action={
-          <button onClick={() => setIsDialogOpen(true)} className="h-9 px-4 rounded-xl bg-forest text-white text-[13px] font-bold hover:bg-forest/90 transition shadow-sm">
+          <Button variant="primary" size="sm" onClick={() => setIsDialogOpen(true)}>
             + Nova Área
-          </button>
+          </Button>
         }
       />
       <AreasGrid />

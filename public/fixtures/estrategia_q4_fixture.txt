@@ -1,0 +1,10 @@
+# Më Life OS — Documento de Referência Estratégica Q4
+
+## 1. Contexto e Objetivos
+Este documento serve como arquivo de fixture estático para validação de integridade criptográfica (SHA-256) e testes de corte de corpo Markdown Twin (limite de 2.200 caracteres conforme o PRD).
+
+## 2. Pilares de Execução
+1. **Knowledge Intake**: Centralização das informações como Single Source of Truth no IndexedDB.
+2. **Método PARA**: Organização determinística entre Projetos, Áreas, Recursos e Arquivos.
+3. **Memória Relacional**: Conexão entre entidades via grafos ponderados com governança humana.
+4. **Governança de IA**: Todo comando gerado pelo assistente requer confirmação explícita antes de qualquer mutação no estado persistente.

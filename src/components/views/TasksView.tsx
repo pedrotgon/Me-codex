@@ -322,7 +322,7 @@ export default function TasksView() {
               </button>
               
               {openFilterCat === 'date' && (
-                <div onClick={e => e.stopPropagation()} className="absolute top-full mt-2 right-0 w-[280px] bg-white/95 backdrop-blur-md border border-forest/10 shadow-[0_8px_30px_rgb(0,0,0,0.12)] rounded-[16px] z-[100] p-4 animate-in fade-in zoom-in-95 duration-100">
+                <div onClick={e => e.stopPropagation()} className="absolute top-full mt-2 right-0 w-[280px] bg-white border border-forest/10 shadow-[0_8px_30px_rgb(0,0,0,0.12)] rounded-[16px] z-[100] p-4 animate-in fade-in zoom-in-95 duration-100">
                   <div className="flex items-center gap-2 mb-4">
                     <select 
                       value={month}
@@ -399,7 +399,7 @@ export default function TasksView() {
               </button>
               
               {openFilterCat === 'agendas' && (
-                <div onClick={e => e.stopPropagation()} className="absolute top-full mt-2 right-0 w-64 bg-white/95 backdrop-blur-md border border-forest/10 shadow-[0_8px_30px_rgb(0,0,0,0.12)] rounded-[16px] z-[100] p-3 max-h-[350px] overflow-y-auto overflow-x-hidden animate-in fade-in zoom-in-95 duration-100">
+                <div onClick={e => e.stopPropagation()} className="absolute top-full mt-2 right-0 w-64 bg-white border border-forest/10 shadow-[0_8px_30px_rgb(0,0,0,0.12)] rounded-[16px] z-[100] p-3 max-h-[350px] overflow-y-auto overflow-x-hidden animate-in fade-in zoom-in-95 duration-100">
                   <div className="flex items-center justify-between mb-3 px-1 border-b border-forest/5 pb-2">
                     <span className="text-[10px] font-bold text-ink/40 uppercase tracking-[0.2em] text-left block w-full">MINHAS AGENDAS</span>
                     {minhasAgendas.length > 0 && (
@@ -445,7 +445,7 @@ export default function TasksView() {
                   </button>
                   
                   {openFilterCat === key && (
-                    <div className="absolute top-full mt-2 right-0 w-64 bg-white/95 backdrop-blur-md border border-forest/10 shadow-[0_8px_30px_rgb(0,0,0,0.12)] rounded-[16px] z-[100] p-3 max-h-[350px] overflow-y-auto overflow-x-hidden animate-in fade-in zoom-in-95 duration-100">
+                    <div className="absolute top-full mt-2 right-0 w-64 bg-white border border-forest/10 shadow-[0_8px_30px_rgb(0,0,0,0.12)] rounded-[16px] z-[100] p-3 max-h-[350px] overflow-y-auto overflow-x-hidden animate-in fade-in zoom-in-95 duration-100">
                       <div className="flex items-center justify-between mb-3 px-1 border-b border-forest/5 pb-2">
                         <span className="text-[10px] font-bold text-ink/40 uppercase tracking-[0.2em]">{label}</span>
                         {filterModes[key]?.length > 0 && (
@@ -884,7 +884,7 @@ export default function TasksView() {
 
       {/* Modern Dialog Overlay for Adding Task */}
       {isAddingTask && (
-        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setIsAddingTask(false)}>
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setIsAddingTask(false)}>
           <div className="bg-white rounded-[24px] shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
             <div className="p-6">
               <div className="text-[11px] font-bold uppercase tracking-widest text-ink/40 mb-4 flex items-center gap-2">

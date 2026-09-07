@@ -85,20 +85,31 @@ export const ScreenFrame: React.FC<ScreenFrameProps> = ({
 
       {/* Viewport Canvas Frame Area (scaled with CSS transform) */}
       <div
-        className="p-3 bg-[#f8f9fa] flex items-center justify-center overflow-hidden rounded-b-[12px]"
-        style={{ height: containerHeight + 24 }}
+        className="p-3 bg-[#f8f9fa] flex items-center justify-center overflow-hidden"
+        style={{ width: containerWidth + 24, height: containerHeight + 24 }}
       >
         <div
-          className="relative bg-white rounded-[8px] border border-[#e8e8e8] shadow-2xs overflow-hidden origin-top-left"
+          className="relative rounded-[8px] border border-[#e8e8e8] shadow-2xs overflow-hidden bg-white"
           style={{
-            width: naturalWidth,
-            height: naturalHeight,
-            transform: `scale(${scale})`,
-            transformOrigin: 'top left',
-            pointerEvents: 'none', // Prevents accidental input inside miniature frame
+            width: containerWidth,
+            height: containerHeight,
+            position: 'relative',
           }}
         >
-          {children}
+          <div
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: naturalWidth,
+              height: naturalHeight,
+              transform: `scale(${scale})`,
+              transformOrigin: 'top left',
+              pointerEvents: 'none', // Prevents accidental input inside miniature frame
+            }}
+          >
+            {children}
+          </div>
         </div>
       </div>
 

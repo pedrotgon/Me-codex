@@ -13,8 +13,12 @@ import MemoriaNos from './MemoriaNos';
 import MemoriaRelacoes from './MemoriaRelacoes';
 import MemoriaOrfaos from './MemoriaOrfaos';
 
-export default function MemoriaView() {
-  const [activeTab, setActiveTab] = useState<'mapa' | 'nos' | 'relacoes' | 'orfaos'>('mapa');
+interface MemoriaViewProps {
+  initialTab?: 'mapa' | 'nos' | 'relacoes' | 'orfaos';
+}
+
+export default function MemoriaView({ initialTab = 'mapa' }: MemoriaViewProps = {}) {
+  const [activeTab, setActiveTab] = useState<'mapa' | 'nos' | 'relacoes' | 'orfaos'>(initialTab);
 
   return (
     <div className="flex flex-col gap-5 w-full h-full pb-10">
@@ -25,7 +29,7 @@ export default function MemoriaView() {
       />
 
       {/* Tabs Claras da Memória */}
-      <div className="flex items-center gap-1.5 p-1 bg-white/70 backdrop-blur-md border border-forest/10 rounded-2xl self-start overflow-x-auto max-w-full shadow-2xs">
+      <div className="flex items-center gap-1.5 p-1 bg-white border border-forest/10 rounded-2xl self-start overflow-x-auto max-w-full shadow-2xs">
         <button
           type="button"
           onClick={() => setActiveTab('mapa')}

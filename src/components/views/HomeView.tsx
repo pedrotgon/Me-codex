@@ -3,6 +3,7 @@ import { useStore } from '../../store';
 import { FolderKanban, CheckCircle2, Layers, Library, Flame, Activity, PieChart, TrendingUp, Calendar as CalIcon, ChevronRight, X } from 'lucide-react';
 import { PieChart as RechartsPieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis } from 'recharts';
 import { getProjectIcon, getAreaIcon, formatNaipe } from '../../lib/icons';
+import { MetricCard, Button, Progress } from '../../design-system/components';
 
 export default function HomeView() {
   const { tasks, projects, areas, resources, habits, toggleHabit, currentView, setCurrentView, setSelectedProjectId } = useStore();
@@ -47,19 +48,14 @@ export default function HomeView() {
           { id: 'areas', icon: Layers, label: 'Áreas Foco', value: areas.length, sub: 'Monitoradas' },
           { id: 'resources', icon: Library, label: 'Recursos', value: resources.length, sub: 'No Cofre' }
         ].map((m, i) => (
-          <div 
-            key={i} 
+          <MetricCard
+            key={i}
+            label={m.label}
+            value={m.value}
+            subtext={m.sub}
+            icon={m.icon}
             onClick={() => setSelectedKpi(m.id)}
-            className="bg-white rounded-[10px] p-5 border border-[#e5e5e5] flex flex-col justify-between cursor-pointer transition-all hover:border-[#0c2b15]/40 hover:shadow-sm"
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-sans font-medium uppercase tracking-wider text-[#696969]">{m.label}</span>
-              <span className="text-[11px] font-sans text-[#696969]/70">{m.sub}</span>
-            </div>
-            <div className="mt-5">
-              <div className="text-[36px] font-serif font-normal text-[#0c2b15] tracking-tight leading-none">{m.value}</div>
-            </div>
-          </div>
+          />
         ))}
       </div>
 
@@ -76,9 +72,13 @@ export default function HomeView() {
                 <h3 className="font-serif text-[20px] font-normal text-[#0c2b15] leading-tight">Projetos em Andamento</h3>
                 <p className="text-[12px] font-sans text-[#696969] mt-0.5">Visão executiva das frentes prioritárias</p>
               </div>
-              <button onClick={() => { setSelectedProjectId(null); setCurrentView('projects'); }} className="text-[12px] font-sans font-medium text-[#0c2b15] hover:text-[#41a217] px-3 py-1.5 rounded-[8px] border border-[#e5e5e5] hover:border-[#41a217]/40 transition-colors">
+              <Button 
+                variant="secondary" 
+                size="sm" 
+                onClick={() => { setSelectedProjectId(null); setCurrentView('projects'); }}
+              >
                 Ver todos
-              </button>
+              </Button>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -115,9 +115,7 @@ export default function HomeView() {
                          <span className="text-[10px] font-sans uppercase tracking-wider text-[#696969]">Conclusão</span>
                          <span className="text-[11px] font-mono font-medium text-[#0c2b15]">{p.pRate}%</span>
                       </div>
-                      <div className="h-1 w-full bg-[#e5e5e5] rounded-full overflow-hidden">
-                        <div className="h-full bg-[#0c2b15] rounded-full transition-all duration-500" style={{ width: `${p.pRate}%` }}></div>
-                      </div>
+                      <Progress value={p.pRate} size="sm" />
                     </div>
                   </div>
                 );
@@ -254,7 +252,7 @@ export default function HomeView() {
       {/* KPI Details Modal */}
       {selectedKpi && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-ink/30 backdrop-blur-sm" onClick={() => setSelectedKpi(null)}></div>
+          <div className="absolute inset-0 bg-black/40" onClick={() => setSelectedKpi(null)}></div>
           <div className="relative bg-white rounded-[32px] w-full max-w-lg overflow-hidden shadow-2xl animate-in flip-in-y zoom-in-95 duration-300">
             
             <div className="flex items-center justify-between p-6 border-b border-black/5">

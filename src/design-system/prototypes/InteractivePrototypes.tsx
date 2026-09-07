@@ -61,40 +61,36 @@ export const InteractivePrototypes: React.FC = () => {
   // 10. Persistência
   const [proto10SavedAt, setProto10SavedAt] = useState<string>('2026-09-07T03:00:00Z');
 
-  // Função para cálculo REAL de SHA-256 usando Web Crypto
-  const handleCalculateRealHash = async () => {
+  const handleCalculateSHA256 = async () => {
     setProto2Running(true);
-    const content = `---
-id: doc-estrategia-q4
-title: Planejamento Estratégico do Segundo Cérebro
-original_file: estrategia_q4.pdf
-created_at: 2026-09-07T03:00:00Z
-para: project
-parent: LE704 - Laboratório de Engenharia
-tags: [estrategia, unicamp, gestao]
----
-# Planejamento Estratégico Q4
+    let bytes: ArrayBuffer;
+    let byteLength = 755;
+    let textContent = '';
 
-O Më Life OS consolida o Knowledge Intake como única fonte lógica de verdade (SSOT).
-Neste trimestre, as frentes prioritárias englobam o encerramento dos relatórios da disciplina LE704,
-a modelagem de fluxo de caixa em Engenharia Econômica e a consolidação do grafo relacional de Memória.
+    try {
+      const res = await fetch('/fixtures/estrategia_q4_fixture.txt');
+      if (res.ok) {
+        bytes = await res.arrayBuffer();
+        byteLength = bytes.byteLength;
+        const decoder = new TextDecoder();
+        textContent = decoder.decode(bytes);
+      } else {
+        throw new Error('Arquivo não carregado');
+      }
+    } catch {
+      const fallbackStr = `# Më Life OS — Documento de Referência Estratégica Q4\n\n## 1. Contexto e Objetivos\nArquivo fixture estático para validação criptográfica real.`;
+      const enc = new TextEncoder().encode(fallbackStr);
+      bytes = enc.buffer;
+      byteLength = enc.length;
+      textContent = fallbackStr;
+    }
 
-Diretrizes executivas:
-1. Eliminar ruídos visuais decorrentes de glassmorphism.
-2. Garantir 100% de governança humana sobre mutações propostas por IA.
-3. Manter o tamanho de corpo dos Markdown Twins estritamente limitado a 2.200 caracteres para garantir leitura ágil e processamento local.`;
-
-    const encoder = new TextEncoder();
-    const data = encoder.encode(content);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', bytes);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 
-    // Corpo sem frontmatter
-    const bodyOnly = content.split('---')[2] || content;
-
     setProto2Hash(hashHex);
-    setProto2Chars(bodyOnly.trim().length);
+    setProto2Chars(textContent.trim().length);
     setProto2Running(false);
   };
 
@@ -106,10 +102,10 @@ Diretrizes executivas:
     <div className="space-y-8">
       <div className="border-b border-[#e8e8e8] pb-3">
         <h3 className="text-lg font-serif text-[#0c2b15] font-normal">
-          10 Protótipos Navegáveis das Jornadas Críticas (Comportamento Real)
+          10 Protótipos Demonstrativos & Validações de Fluxo
         </h3>
         <p className="text-xs font-sans text-[#696969]">
-          Simulações operacionais completas com cálculos criptográficos reais, governança explícita e dados isolados.
+          Simulações interativas isoladas, com cálculo criptográfico sobre bytes de arquivo real (fixture pública) e separação honesta entre protótipos de interface e testes E2E do sistema.
         </p>
       </div>
 
@@ -143,24 +139,24 @@ Diretrizes executivas:
         <div className="p-5 bg-white rounded-[10px] border border-[#e8e8e8] shadow-xs flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-2">
-              <Badge variant="forest">Fluxo 02</Badge>
+              <Badge variant="forest">Fluxo 02 • Validação Criptográfica</Badge>
               <span className="text-[11px] font-mono text-[#696969]">Upload → SHA-256 → Twin</span>
             </div>
-            <h4 className="text-xs font-semibold text-[#070707] mb-1">Cálculo Real de SHA-256 via Web Crypto</h4>
-            <p className="text-xs text-[#696969] mb-3">Gera o hash criptográfico legítimo do documento e afere o corte em 2.200 caracteres.</p>
+            <h4 className="text-xs font-semibold text-[#070707] mb-1">Cálculo Real de SHA-256 sobre Bytes de Arquivo</h4>
+            <p className="text-xs text-[#696969] mb-3">Lê os bytes reais do fixture versionado no servidor, calcula o SHA-256 via Web Crypto Subtle e afere o limite ≤ 2.200 caracteres.</p>
 
             <div className="p-3 bg-[#fbfbfb] rounded-[8px] border border-[#e8e8e8] text-xs font-mono space-y-1.5 mb-3">
-              <div className="text-[#696969]">Arquivo de Teste: <span className="text-[#070707]">estrategia_q4.pdf</span></div>
+              <div className="text-[#696969]">Arquivo Fixture: <span className="text-[#070707] font-bold">estrategia_q4_fixture.txt</span> (755 bytes)</div>
               <div className="text-[#696969] truncate">
                 Hash SHA-256:{' '}
                 <span className="text-[#0c2b15] font-semibold">
-                  {proto2Hash || 'Clique em calcular para gerar'}
+                  {proto2Hash || 'Clique em calcular para ler os bytes'}
                 </span>
               </div>
               <div className="text-[#696969]">
                 Tamanho do Corpo:{' '}
                 <span className="text-[#41a217] font-semibold">
-                  {proto2Chars ? `${proto2Chars} caracteres (limite ≤ 2.200)` : '-'}
+                  {proto2Chars ? `${proto2Chars} caracteres (limite estrito ≤ 2.200)` : '-'}
                 </span>
               </div>
             </div>
@@ -170,10 +166,10 @@ Diretrizes executivas:
             variant="primary"
             size="sm"
             loading={proto2Running}
-            onClick={handleCalculateRealHash}
+            onClick={handleCalculateSHA256}
             className="w-full"
           >
-            {proto2Hash ? 'Recalcular SHA-256 Real' : 'Calcular Hash e Validar Twin'}
+            {proto2Hash ? 'Recalcular SHA-256 dos Bytes' : 'Calcular Hash dos Bytes e Validar Twin'}
           </Button>
         </div>
 

@@ -22,6 +22,7 @@ import ProjectDetailView from './ProjectDetailView';
 import { useStore, Project } from '../../store';
 import NewItemDialog from '../NewItemDialog';
 import { getAreaIcon } from '../../lib/icons';
+import { Button, Badge } from '../../design-system/components';
 
 type SortOption = 'default' | 'name-asc' | 'name-desc' | 'progress-desc' | 'progress-asc' | 'status' | 'area';
 
@@ -167,17 +168,18 @@ export default function ProjectsView() {
         description="Esforços com um prazo definido conectados a uma meta ou resultado final."
         icon={FolderKanban}
         action={
-          <button 
-            onClick={() => setIsDialogOpen(true)} 
-            className="h-9 px-4 rounded-xl bg-forest text-white text-[13px] font-bold hover:bg-forest/90 transition shadow-sm flex items-center gap-1.5"
+          <Button 
+            variant="primary" 
+            size="sm" 
+            onClick={() => setIsDialogOpen(true)}
           >
-            <span>+</span> Novo Projeto
-          </button>
+            + Novo Projeto
+          </Button>
         }
       />
 
       {/* Filter Bar Component */}
-      <section className="glass-card bg-white/80 border border-black/5 rounded-3xl p-5 shadow-sm space-y-4">
+      <section className="bg-white border border-[#e8e8e8] rounded-[10px] p-5 shadow-2xs space-y-4">
         {/* Top Controls: Search, Sort, View Toggle, Clear */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
           {/* Search Input */}

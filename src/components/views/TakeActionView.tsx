@@ -2,6 +2,7 @@ import React from 'react';
 import { CheckCircle2 } from 'lucide-react';
 import ViewHeader from '../ViewHeader';
 import TakeActionList from '../TakeActionList';
+import { Button } from '../../design-system/components';
 
 export default function TakeActionView() {
   return (
@@ -11,9 +12,9 @@ export default function TakeActionView() {
         description="Acompanhe suas tarefas urgentes, pendentes ou prioridades do dia."
         icon={CheckCircle2}
         action={
-          <button className="h-9 px-4 rounded-xl bg-forest text-white text-[13px] font-bold hover:bg-forest/90 transition shadow-sm">
+          <Button variant="primary" size="sm">
             + Nova Tarefa
-          </button>
+          </Button>
         }
       />
       <TakeActionList />
