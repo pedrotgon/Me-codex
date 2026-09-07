@@ -2,12 +2,16 @@
 @import "tailwindcss";
 
 @theme {
-  --color-forest: #0F3D2E;
-  --color-nude: #ebf0ec; /* slight green tint */
-  --color-nude-light: #f5f8f5;
-  --color-ink: #10241A; /* darkly tinted ink with greens */
+  --color-forest: #0c2b15; /* BCG Deep Forest */
+  --color-forest-accent: #41a217; /* BCG Vivid Green */
+  --color-nude: #fbfbfb; /* Calm off-white canvas */
+  --color-nude-light: #ffffff;
+  --color-ink: #070707; /* Crisp editorial text */
+  --color-muted-copy: #696969;
+  --color-calm-border: #e8e8e8;
   --font-sans: 'Inter', system-ui, sans-serif;
   --font-serif: 'Newsreader', Georgia, serif;
+  --radius-bcg: 0.625rem; /* 10px */
 }
 
 body {
@@ -17,18 +21,17 @@ body {
   overflow-y: scroll;
 }
 
+/* Calm UI Cards: clean, zero cognitive noise, subtle borders */
 .glass-card {
-  background: rgba(255, 255, 255, 0.6);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.8);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-  border-radius: 1.5rem;
+  background: #ffffff;
+  border: 1px solid var(--color-calm-border);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+  border-radius: 0.625rem;
 }
 
 .glass-panel {
-  background: rgba(252, 251, 249, 0.8);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.9);
+  background: #ffffff;
+  border: 1px solid var(--color-calm-border);
 }
 
 ::-webkit-scrollbar {

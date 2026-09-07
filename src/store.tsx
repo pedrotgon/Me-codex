@@ -65,7 +65,7 @@ export interface Resource {
   task?: string | string[];
 }
 
-export type View = 'home' | 'quick-capture' | 'tasks' | 'take-action' | 'projects' | 'areas' | 'recursos' | 'arquivados' | 'inbox' | 'habitos' | 'weeks' | 'dados' | 'diagrama' | 'memoria' | 'journal' | 'analytics-completo' | 'para-organizer';
+export type View = 'home' | 'quick-capture' | 'tasks' | 'take-action' | 'projects' | 'areas' | 'recursos' | 'arquivados' | 'inbox' | 'habitos' | 'weeks' | 'dados' | 'diagrama' | 'memoria' | 'journal' | 'analytics-completo' | 'para-organizer' | 'canvas';
 
 interface StoreState {
   currentView: View;

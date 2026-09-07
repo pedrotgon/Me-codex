@@ -21,32 +21,30 @@ export default function Header() {
   }, []);
 
   return (
-    <header className="sticky top-0 z-20 h-[72px] backdrop-blur-xl bg-nude/90 border-b border-forest/10">
+    <header className="sticky top-0 z-20 h-[72px] bg-[#fbfbfb]/95 backdrop-blur-md border-b border-[#e5e5e5]">
       <div className="h-full flex items-center gap-4 px-6 lg:px-8 max-w-[1400px] mx-auto w-full">
-        <button onClick={toggleSidebar} className="p-2 -ml-2 rounded-xl hover:bg-forest/5 transition-colors">
-          <Menu className="w-5 h-5 text-forest" />
+        <button onClick={toggleSidebar} className="p-2 -ml-2 rounded-[10px] hover:bg-black/5 text-[#0c2b15] transition-colors">
+          <Menu className="w-5 h-5" />
         </button>
         
-        <div className="hidden md:flex items-center gap-3 text-[13px] font-bold">
-          <span className="text-forest/60">Hoje</span>
-          <span className="text-forest/30">•</span>
-          <span className="text-forest">{time.date}</span>
-          <span className="text-forest/30">•</span>
-          <span className="text-forest">{time.time}</span>
+        <div className="hidden md:flex items-center gap-2.5 text-[14px]">
+          <span className="font-serif italic text-[16px] text-[#0c2b15] font-normal capitalize">{time.date}</span>
+          <span className="text-[#696969]/40">•</span>
+          <span className="text-[13px] font-mono font-medium text-[#696969]">{time.time}</span>
         </div>
 
         <div className="ml-auto flex items-center gap-3">
           <div className="relative hidden sm:block">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-forest/50" />
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#696969]" />
             <input 
-              placeholder="Buscar antes de criar..." 
-              className="h-10 w-[260px] pl-9 pr-4 rounded-xl bg-white/70 border border-forest/10 text-sm font-medium placeholder:text-forest/40 focus:outline-none focus:ring-2 focus:ring-forest/20 focus:border-forest/30 transition-all text-forest" 
+              placeholder="Buscar no sistema..." 
+              className="h-10 w-[260px] pl-9 pr-4 rounded-[10px] bg-white border border-[#e5e5e5] text-[13px] font-sans placeholder:text-[#696969]/60 focus:outline-none focus:border-[#41a217] focus:ring-1 focus:ring-[#41a217] transition-all text-[#070707]" 
             />
           </div>
-          <button className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/70 border border-forest/10 hover:bg-white text-forest/70 transition-colors shadow-sm">
+          <button className="h-10 w-10 flex items-center justify-center rounded-[10px] bg-white border border-[#e5e5e5] hover:bg-[#f5f5f5] text-[#0c2b15] transition-colors">
             <Bell className="w-4 h-4" />
           </button>
-          <div className="w-10 h-10 rounded-xl bg-forest text-white flex items-center justify-center text-xs font-bold shadow-sm">
+          <div className="w-10 h-10 rounded-[10px] bg-[#0c2b15] text-white flex items-center justify-center text-xs font-serif font-medium tracking-wide">
             PG
           </div>
         </div>

@@ -1,5 +1,4 @@
-import React from 'react';
-import { Brain, Home, Zap, CheckCircle2, FolderKanban, Layers, Library, Inbox, Repeat2, CalendarDays, Database, Sparkles, Network, BookOpen, Archive } from 'lucide-react';
+import { Brain, Home, Zap, CheckCircle2, FolderKanban, Layers, Library, Inbox, Repeat2, CalendarDays, Database, Sparkles, Network, BookOpen, Archive, LayoutGrid } from 'lucide-react';
 import { useStore, View } from '../store';
 
 export default function Sidebar() {
@@ -47,6 +46,7 @@ export default function Sidebar() {
           <p className="px-3 pb-2 text-[11px] font-bold uppercase tracking-wider text-white/50">Início</p>
           <div className="space-y-0.5">
             <SidebarLink icon={Home} text="Visão Geral" view="home" />
+            <SidebarLink icon={LayoutGrid} text="Screen Atlas" view="canvas" />
             <SidebarLink icon={Network} text="Memória" view="memoria" />
             <SidebarLink icon={Zap} text="Quick Capture" view="quick-capture" />
           </div>

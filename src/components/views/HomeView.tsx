@@ -39,28 +39,25 @@ export default function HomeView() {
   return (
     <div className="flex flex-col gap-6 lg:gap-8 w-full max-w-7xl mx-auto pb-10">
       
-      {/* Header Metrics */}
+      {/* Header Metrics — BCG Editorial */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { id: 'projects', icon: FolderKanban, label: 'Projetos Ativos', value: activeProjects.length, sub: `${projects.length} totais`, color: 'text-emerald-700', bg: 'bg-emerald-50', hover: 'hover:border-emerald-500/30' },
-          { id: 'completion', icon: CheckCircle2, label: 'Taxa de Conclusão', value: `${completionRate}%`, sub: `${pendingTasks.length} pendentes`, color: 'text-forest', bg: 'bg-forest/10', hover: 'hover:border-forest/40' },
-          { id: 'areas', icon: Layers, label: 'Áreas Foco', value: areas.length, sub: 'Monitoradas', color: 'text-blue-700', bg: 'bg-blue-50', hover: 'hover:border-blue-500/30' },
-          { id: 'resources', icon: Library, label: 'Recursos', value: resources.length, sub: 'No Cofre', color: 'text-amber-700', bg: 'bg-amber-50', hover: 'hover:border-amber-500/30' }
+          { id: 'projects', icon: FolderKanban, label: 'Projetos Ativos', value: activeProjects.length, sub: `${projects.length} totais` },
+          { id: 'completion', icon: CheckCircle2, label: 'Taxa de Conclusão', value: `${completionRate}%`, sub: `${pendingTasks.length} pendentes` },
+          { id: 'areas', icon: Layers, label: 'Áreas Foco', value: areas.length, sub: 'Monitoradas' },
+          { id: 'resources', icon: Library, label: 'Recursos', value: resources.length, sub: 'No Cofre' }
         ].map((m, i) => (
           <div 
             key={i} 
             onClick={() => setSelectedKpi(m.id)}
-            className={`bg-white rounded-[24px] p-5 lg:p-6 border border-forest/10 shadow-sm flex flex-col gap-3 cursor-pointer transition-all hover:shadow-md ${m.hover}`}
+            className="bg-white rounded-[10px] p-5 border border-[#e5e5e5] flex flex-col justify-between cursor-pointer transition-all hover:border-[#0c2b15]/40 hover:shadow-sm"
           >
             <div className="flex items-center justify-between">
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${m.bg} ${m.color}`}>
-                <m.icon className="w-5 h-5" />
-              </div>
-              <span className="text-[12px] font-bold text-ink/40 bg-black/5 px-2 py-0.5 rounded-lg">{m.sub}</span>
+              <span className="text-[11px] font-sans font-medium uppercase tracking-wider text-[#696969]">{m.label}</span>
+              <span className="text-[11px] font-sans text-[#696969]/70">{m.sub}</span>
             </div>
-            <div>
-              <div className="text-[28px] font-bold text-ink tracking-tight">{m.value}</div>
-              <div className="text-[12px] font-bold text-ink/50 uppercase tracking-widest">{m.label}</div>
+            <div className="mt-5">
+              <div className="text-[36px] font-serif font-normal text-[#0c2b15] tracking-tight leading-none">{m.value}</div>
             </div>
           </div>
         ))}
@@ -73,23 +70,18 @@ export default function HomeView() {
         <div className="xl:col-span-2 flex flex-col gap-6 lg:gap-8">
           
           {/* Projects Pulse */}
-          <div className="bg-white rounded-[32px] p-6 lg:p-8 border border-forest/10 shadow-sm">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-forest/5 text-forest flex items-center justify-center">
-                  <Activity className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-[18px] text-ink leading-tight">Projetos em Andamento</h3>
-                  <p className="text-[11px] font-bold text-ink/40 uppercase tracking-widest mt-0.5">Top Projetos Ativos</p>
-                </div>
+          <div className="bg-white rounded-[10px] p-6 lg:p-7 border border-[#e5e5e5]">
+            <div className="flex items-center justify-between pb-4 mb-5 border-b border-[#f0f0f0]">
+              <div>
+                <h3 className="font-serif text-[20px] font-normal text-[#0c2b15] leading-tight">Projetos em Andamento</h3>
+                <p className="text-[12px] font-sans text-[#696969] mt-0.5">Visão executiva das frentes prioritárias</p>
               </div>
-              <button onClick={() => { setSelectedProjectId(null); setCurrentView('projects'); }} className="text-[12px] font-bold text-forest hover:bg-forest/5 px-3 py-1.5 rounded-xl transition-colors">
+              <button onClick={() => { setSelectedProjectId(null); setCurrentView('projects'); }} className="text-[12px] font-sans font-medium text-[#0c2b15] hover:text-[#41a217] px-3 py-1.5 rounded-[8px] border border-[#e5e5e5] hover:border-[#41a217]/40 transition-colors">
                 Ver todos
               </button>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {activeProjects
                 .map(p => {
                   const projTasks = tasks.filter(t => t.project === p.title);
@@ -108,51 +100,39 @@ export default function HomeView() {
                       setSelectedProjectId(p.id);
                       setCurrentView('projects');
                     }}
-                    className="group cursor-pointer p-5 rounded-[20px] bg-[#f8f9fa] border border-forest/5 hover:border-forest/20 hover:shadow-sm transition-all flex flex-col gap-4"
+                    className="group cursor-pointer p-4 rounded-[10px] bg-[#fbfbfb] border border-[#e5e5e5] hover:border-[#0c2b15]/30 hover:bg-white transition-all flex flex-col justify-between gap-3.5"
                   >
-                    <div className="flex flex-col gap-2">
-                      <div className="flex items-center gap-3">
-                        <span className="text-2xl shrink-0">{getProjectIcon(p.title) || '🎯'}</span>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5 truncate">
-                            <div className={`w-2 h-2 rounded-full shrink-0 ${p.status === 'active' ? 'bg-forest' : 'bg-gray-300'}`} />
-                            <div className="text-[14px] font-bold text-ink truncate group-hover:text-forest transition-colors">{p.title}</div>
-                          </div>
-                          <div className="text-[11px] font-bold text-ink/40 uppercase truncate mt-0.5 ml-3.5">{p.area || 'Diversos'}</div>
-                        </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xl shrink-0">{getProjectIcon(p.title) || '🎯'}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[13px] font-sans font-semibold text-[#070707] truncate group-hover:text-[#0c2b15] transition-colors">{p.title}</div>
+                        <div className="text-[11px] font-sans text-[#696969] truncate mt-0.5">{p.area || 'Geral'}</div>
                       </div>
                     </div>
                     
                     <div>
                       <div className="flex items-center justify-between mb-1.5">
-                         <span className="text-[10px] font-bold uppercase tracking-widest text-ink/40">Progresso</span>
-                         <span className="text-[12px] font-bold text-forest">{p.pRate}%</span>
+                         <span className="text-[10px] font-sans uppercase tracking-wider text-[#696969]">Conclusão</span>
+                         <span className="text-[11px] font-mono font-medium text-[#0c2b15]">{p.pRate}%</span>
                       </div>
-                      <div className="h-1.5 w-full bg-forest/10 rounded-full overflow-hidden">
-                        <div className="h-full bg-forest rounded-full transition-all duration-500 delay-100" style={{ width: `${p.pRate}%` }}></div>
+                      <div className="h-1 w-full bg-[#e5e5e5] rounded-full overflow-hidden">
+                        <div className="h-full bg-[#0c2b15] rounded-full transition-all duration-500" style={{ width: `${p.pRate}%` }}></div>
                       </div>
                     </div>
                   </div>
                 );
               })}
               {activeProjects.length === 0 && (
-                <div className="col-span-2 py-8 text-center text-ink/40 font-medium text-sm">Nenhum projeto ativo.</div>
+                <div className="col-span-2 py-8 text-center text-[#696969] font-sans text-sm">Nenhum projeto ativo.</div>
               )}
             </div>
           </div>
 
           {/* Areas Breakdown Chart */}
-          <div className="bg-white rounded-[32px] p-6 lg:p-8 border border-forest/10 shadow-sm flex flex-col items-center">
-             <div className="w-full flex items-center justify-between gap-3 mb-6">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-forest/5 text-forest flex items-center justify-center">
-                    <PieChart className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-[18px] text-ink leading-tight">Distribuição de Tarefas</h3>
-                    <p className="text-[11px] font-bold text-ink/40 uppercase tracking-widest mt-0.5">Visão por Área</p>
-                  </div>
-                </div>
+          <div className="bg-white rounded-[10px] p-6 lg:p-7 border border-[#e5e5e5]">
+             <div className="w-full pb-4 mb-6 border-b border-[#f0f0f0]">
+                <h3 className="font-serif text-[20px] font-normal text-[#0c2b15] leading-tight">Distribuição de Tarefas</h3>
+                <p className="text-[12px] font-sans text-[#696969] mt-0.5">Alocação de esforço por pilar estratégico</p>
              </div>
              
              <div className="w-full flex flex-col md:flex-row gap-8 items-center">
@@ -206,61 +186,61 @@ export default function HomeView() {
         <div className="flex flex-col gap-6 lg:gap-8">
           
           {/* Quick Stats list */}
-          <div className="bg-white rounded-[32px] p-6 border border-forest/10 shadow-sm relative overflow-hidden">
-            <h3 className="font-bold text-[16px] text-ink mb-1 relative z-10 flex items-center gap-2">
-              <CalIcon className="w-4 h-4 text-forest" /> Radar do Dia
+          <div className="bg-white rounded-[10px] p-6 border border-[#e5e5e5]">
+            <h3 className="font-serif text-[18px] font-normal text-[#0c2b15] mb-1">
+              Radar do Dia
             </h3>
-            <p className="text-[11px] font-bold text-ink/40 uppercase tracking-widest mb-4 relative z-10">Foco imediato</p>
+            <p className="text-[11px] font-sans text-[#696969] mb-4">Ações prioritárias de hoje</p>
             
-            <div className="flex flex-col gap-2 relative z-10">
+            <div className="flex flex-col gap-2">
               {tasks.filter(t => t.executionDate === 'hoje' || t.deadline === 'hoje' || (t.executionDate?.includes(new Date().getDate().toString()))).slice(0, 4).map(t => (
-                <div key={t.id} className="group flex items-center justify-between p-3 rounded-[16px] bg-[#f8f9fa] border border-forest/5 hover:border-forest/20 transition-all cursor-pointer">
-                   <div className="flex items-center gap-3 truncate pr-4">
-                     <div className="shrink-0 text-base leading-none flex items-center justify-center w-5 font-mono text-[12px]">{t.naipe ? formatNaipe(t.naipe) : <CheckCircle2 className="w-3.5 h-3.5 text-forest/40" />}</div>
-                     <span className="text-[13px] font-bold text-ink truncate group-hover:text-forest transition-colors">{t.title}</span>
+                <div key={t.id} className="group flex items-center justify-between p-3 rounded-[8px] bg-[#fbfbfb] border border-[#e5e5e5] hover:border-[#0c2b15]/30 hover:bg-white transition-all cursor-pointer">
+                   <div className="flex items-center gap-2.5 truncate pr-4">
+                     <div className="shrink-0 text-base leading-none flex items-center justify-center w-5 font-mono text-[11px] text-[#696969]">{t.naipe ? formatNaipe(t.naipe) : <CheckCircle2 className="w-3.5 h-3.5 text-[#0c2b15]/40" />}</div>
+                     <span className="text-[13px] font-sans text-[#070707] truncate group-hover:text-[#0c2b15] transition-colors">{t.title}</span>
                    </div>
                 </div>
               ))}
               {tasks.filter(t => t.executionDate === 'hoje' || t.deadline === 'hoje' || (t.executionDate?.includes(new Date().getDate().toString()))).length === 0 && (
-                <div className="text-center py-6 text-[13px] font-bold text-ink/30 bg-[#f8f9fa] rounded-2xl border border-dashed border-forest/10">Radar livre hoje.</div>
+                <div className="text-center py-5 text-[12px] font-sans text-[#696969] bg-[#fbfbfb] rounded-[8px] border border-dashed border-[#e5e5e5]">Radar livre hoje.</div>
               )}
             </div>
             
-            <button onClick={() => setCurrentView('tasks')} className="w-full mt-3 text-[12px] font-bold text-forest bg-forest/5 py-2.5 rounded-xl hover:bg-forest/10 transition-colors flex items-center justify-center gap-2">
+            <button onClick={() => setCurrentView('tasks')} className="w-full mt-3 text-[12px] font-sans font-medium text-[#0c2b15] bg-white border border-[#e5e5e5] py-2 rounded-[8px] hover:bg-[#f5f5f5] transition-colors flex items-center justify-center gap-2">
                Ver Agenda Completa <ChevronRight className="w-3 h-3" />
             </button>
           </div>
 
           {/* Simple Habits list */}
-          <div className="bg-white rounded-[32px] p-6 border border-forest/10 shadow-sm relative">
-            <div className="flex items-center justify-between mb-5">
+          <div className="bg-white rounded-[10px] p-6 border border-[#e5e5e5]">
+            <div className="flex items-center justify-between mb-4">
               <div>
-                <h3 className="font-bold text-[16px] text-ink leading-tight flex items-center gap-2">
-                  <Flame className="w-4 h-4 text-orange-500" /> Hábitos
+                <h3 className="font-serif text-[18px] font-normal text-[#0c2b15]">
+                  Hábitos
                 </h3>
               </div>
-              <div className="text-[11px] font-black text-orange-600 bg-orange-50 px-2 py-0.5 rounded-lg flex items-center gap-1">
-                {totalStreak} 🔥
+              <div className="text-[11px] font-mono text-[#0c2b15] bg-[#0c2b15]/5 px-2 py-0.5 rounded-[6px] border border-[#0c2b15]/10">
+                {totalStreak} dias ativos
               </div>
             </div>
 
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-2">
               {habits.map((habit) => {
-                const isCompleted = !!habit.days[todayIndex === 0 ? 6 : todayIndex - 1]; // naive "today" check
+                const isCompleted = !!habit.days[todayIndex === 0 ? 6 : todayIndex - 1];
                 
                 return (
-                <div key={habit.id} className="flex items-center justify-between p-2.5 rounded-[16px] bg-[#f8f9fa] border border-forest/5 transition-all hover:bg-forest/5">
-                  <div className="flex items-center gap-3">
-                    <span className="text-[18px]">{habit.icon}</span>
-                    <span className="text-[13px] font-bold text-ink">{habit.name}</span>
+                <div key={habit.id} className="flex items-center justify-between p-2.5 rounded-[8px] bg-[#fbfbfb] border border-[#e5e5e5] hover:bg-white transition-all">
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-[16px]">{habit.icon}</span>
+                    <span className="text-[13px] font-sans text-[#070707]">{habit.name}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-black text-ink/40 w-4 string-center">{habit.streak}d</span>
+                    <span className="text-[10px] font-mono text-[#696969]">{habit.streak}d</span>
                     <button 
                       onClick={() => toggleHabit(habit.id, todayIndex === 0 ? 6 : todayIndex - 1)}
-                      className={`w-7 h-7 rounded-lg transition-all flex items-center justify-center shrink-0 border-2 ${isCompleted ? 'bg-forest border-forest text-white' : 'border-ink/20 hover:border-forest/50'}`}
+                      className={`w-6 h-6 rounded-[6px] transition-all flex items-center justify-center shrink-0 border ${isCompleted ? 'bg-[#0c2b15] border-[#0c2b15] text-white' : 'border-[#e5e5e5] hover:border-[#0c2b15]'}`}
                     >
-                      {isCompleted && <CheckCircle2 className="w-4 h-4" />}
+                      {isCompleted && <CheckCircle2 className="w-3.5 h-3.5" />}
                     </button>
                   </div>
                 </div>

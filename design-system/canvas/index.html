@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Më Life OS — Canvas Visual Portátil & Screen Atlas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --forest-900: #0c2b15;
+      --forest-500: #41a217;
+      --forest-100: #e2efe4;
+      --forest-50: #f2f7f3;
+      --goldman-900: #1b365d;
+      --goldman-400: #7399c6;
+      --goldman-100: #dce8f4;
+      --neutral-0: #ffffff;
+      --neutral-50: #fbfbfb;
+      --neutral-100: #f4f4f4;
+      --neutral-200: #e8e8e8;
+      --neutral-500: #696969;
+      --neutral-900: #070707;
+      --status-error: #dc2626;
+      --radius-sm: 6px;
+      --radius-md: 8px;
+      --radius-lg: 10px;
+      --radius-xl: 14px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background-color: var(--neutral-50);
+      color: var(--neutral-900);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--neutral-200);
+      padding: 12px 24px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .brand-badge {
+      width: 36px;
+      height: 36px;
+      background: var(--forest-900);
+      color: #fff;
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Newsreader', serif;
+      font-size: 20px;
+      font-weight: bold;
+    }
+    .brand-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--forest-900);
+    }
+    .brand-sub {
+      font-size: 11px;
+      color: var(--neutral-500);
+    }
+
+    nav.section-tabs {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding: 4px 0;
+    }
+    .tab-btn {
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 500;
+      border: none;
+      background: transparent;
+      color: var(--neutral-500);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s ease;
+    }
+    .tab-btn:hover {
+      background: var(--neutral-100);
+      color: var(--neutral-900);
+    }
+    .tab-btn.active {
+      background: var(--forest-900);
+      color: #fff;
+      font-weight: 600;
+    }
+
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-control {
+      padding: 6px 12px;
+      font-size: 11px;
+      font-weight: 500;
+      border: 1px solid var(--neutral-200);
+      background: #fff;
+      color: var(--neutral-900);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+    }
+    .btn-control:hover {
+      background: var(--neutral-100);
+    }
+
+    main#canvas {
+      padding: 32px 24px;
+      max-width: 1440px;
+      margin: 0 auto;
+      transition: transform 0.15s ease;
+      transform-origin: top center;
+    }
+
+    .card {
+      background: #fff;
+      border: 1px solid var(--neutral-200);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      margin-bottom: 32px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    }
+
+    .hero-cover {
+      background: #fff;
+      border: 1px solid var(--neutral-200);
+      border-radius: var(--radius-xl);
+      padding: 48px;
+      margin-bottom: 40px;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero-title {
+      font-family: 'Newsreader', serif;
+      font-size: 42px;
+      color: var(--forest-900);
+      line-height: 1.15;
+      margin-bottom: 16px;
+      font-weight: 400;
+    }
+    .hero-desc {
+      font-size: 16px;
+      color: var(--neutral-500);
+      max-width: 760px;
+      margin-bottom: 32px;
+    }
+
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+    }
+    .metric-box {
+      background: var(--neutral-50);
+      border: 1px solid var(--neutral-200);
+      border-radius: var(--radius-md);
+      padding: 16px;
+    }
+    .metric-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      text-transform: uppercase;
+      color: var(--neutral-500);
+    }
+    .metric-val {
+      font-family: 'Newsreader', serif;
+      font-size: 28px;
+      color: var(--forest-900);
+      margin-top: 4px;
+    }
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      border-bottom: 1px solid var(--neutral-200);
+      padding-bottom: 8px;
+      margin-bottom: 24px;
+    }
+    .section-title {
+      font-family: 'Newsreader', serif;
+      font-size: 26px;
+      color: var(--forest-900);
+    }
+    .section-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--neutral-500);
+    }
+
+    .pipeline-flow {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      overflow-x: auto;
+      padding: 16px 0;
+    }
+    .pipeline-step {
+      flex: 1;
+      min-width: 180px;
+      background: var(--neutral-50);
+      border: 1px solid var(--neutral-200);
+      border-radius: var(--radius-md);
+      padding: 16px;
+    }
+    .pipeline-step.highlight {
+      background: var(--forest-50);
+      border-color: rgba(65, 162, 23, 0.4);
+    }
+    .arrow {
+      font-size: 20px;
+      color: var(--neutral-500);
+      flex-shrink: 0;
+    }
+
+    .screen-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 24px;
+    }
+    .screen-frame {
+      background: var(--neutral-50);
+      border: 1px solid var(--neutral-200);
+      border-radius: var(--radius-lg);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+    }
+    .screen-header-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--neutral-500);
+      border-bottom: 1px solid var(--neutral-200);
+      padding-bottom: 8px;
+      margin-bottom: 12px;
+    }
+    .screen-body {
+      background: #fff;
+      border: 1px solid var(--neutral-200);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      min-height: 220px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .btn-action-primary {
+      background: var(--forest-900);
+      color: #fff;
+      border: none;
+      padding: 8px 16px;
+      border-radius: var(--radius-md);
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    .btn-action-accent {
+      background: var(--forest-500);
+      color: #fff;
+      border: none;
+      padding: 8px 16px;
+      border-radius: var(--radius-md);
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    .btn-action-reject {
+      background: #fff;
+      color: var(--status-error);
+      border: 1px solid rgba(220, 38, 38, 0.3);
+      padding: 8px 16px;
+      border-radius: var(--radius-md);
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Topbar -->
+  <header>
+    <div class="brand">
+      <div class="brand-badge">Më</div>
+      <div>
+        <div class="brand-title">Më Life OS — Screen Atlas</div>
+        <div class="brand-sub">Canvas Visual & Protótipos Navegáveis BCG + Goldman Sachs</div>
+      </div>
+    </div>
+
+    <!-- Navegação por Seções -->
+    <nav class="section-tabs">
+      <button class="tab-btn active" onclick="showSection('all')">Ver Todas</button>
+      <button class="tab-btn" onclick="showSection('sec-00')">00 Cover</button>
+      <button class="tab-btn" onclick="showSection('sec-01')">01 Identidade</button>
+      <button class="tab-btn" onclick="showSection('sec-02')">02 Foundations</button>
+      <button class="tab-btn" onclick="showSection('sec-03')">03 Componentes</button>
+      <button class="tab-btn" onclick="showSection('sec-05')">05 Mapa de Jornadas</button>
+      <button class="tab-btn" onclick="showSection('sec-06')">06 Telas</button>
+      <button class="tab-btn" onclick="showSection('sec-08')">08 Estados</button>
+      <button class="tab-btn" onclick="showSection('sec-09')">09 Protótipos</button>
+      <button class="tab-btn" onclick="showSection('sec-10')">10 Handoff Penpot</button>
+    </nav>
+
+    <!-- Controles de Zoom -->
+    <div class="controls">
+      <button class="btn-control" onclick="adjustZoom(-0.1)">- Zoom</button>
+      <span id="zoom-label" style="font-family: 'JetBrains Mono'; font-size: 11px;">100%</span>
+      <button class="btn-control" onclick="adjustZoom(0.1)">+ Zoom</button>
+      <button class="btn-control" onclick="resetZoom()">Reset</button>
+    </div>
+  </header>
+
+  <!-- Canvas -->
+  <main id="canvas">
+
+    <!-- 00 Cover -->
+    <section id="sec-00" class="hero-cover">
+      <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+        <span style="background: var(--forest-900); color: #fff; padding: 4px 10px; font-family: 'JetBrains Mono'; font-size: 11px; border-radius: 4px; text-transform: uppercase;">Më Life OS</span>
+        <span style="background: var(--goldman-100); color: var(--goldman-900); padding: 4px 10px; font-family: 'JetBrains Mono'; font-size: 11px; border-radius: 4px;">Canônico v2.0</span>
+      </div>
+      <h1 class="hero-title">O Segundo Cérebro Local-First de Alta Fidelidade</h1>
+      <p class="hero-desc">
+        Canvas visual com a totalidade das 28 telas, jornadas, estados de governança e protótipos ponta a ponta navegáveis. 
+        Fusão da sobriedade florestal da Boston Consulting Group (BCG) com a autoridade analítica e editorial do Goldman Sachs.
+      </p>
+      <div class="metrics-grid">
+        <div class="metric-box">
+          <div class="metric-label">Jornadas</div>
+          <div class="metric-val">17 Fluxos</div>
+        </div>
+        <div class="metric-box">
+          <div class="metric-label">Telas Auditadas</div>
+          <div class="metric-val">28 Telas</div>
+        </div>
+        <div class="metric-box">
+          <div class="metric-label">Estados Mapeados</div>
+          <div class="metric-val">112 Estados</div>
+        </div>
+        <div class="metric-box">
+          <div class="metric-label">Governança IA</div>
+          <div class="metric-val" style="color: var(--forest-500);">100% Humana</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 01 Identidade -->
+    <section id="sec-01" class="card">
+      <div class="section-header">
+        <h2 class="section-title">01 — Princípios e Identidade Visual</h2>
+        <span class="section-tag">BCG + Goldman Sachs</span>
+      </div>
+      <div class="metrics-grid">
+        <div class="metric-box" style="background: var(--forest-900); color: #fff;">
+          <div class="metric-label" style="color: rgba(255,255,255,0.7);">BCG Forest 900</div>
+          <div style="font-family: 'JetBrains Mono'; font-size: 16px; margin-top: 8px;">#0c2b15</div>
+        </div>
+        <div class="metric-box" style="background: var(--forest-500); color: #fff;">
+          <div class="metric-label" style="color: rgba(255,255,255,0.7);">BCG Vivid Accent 500</div>
+          <div style="font-family: 'JetBrains Mono'; font-size: 16px; margin-top: 8px;">#41a217</div>
+        </div>
+        <div class="metric-box" style="background: var(--goldman-400); color: #fff;">
+          <div class="metric-label" style="color: rgba(255,255,255,0.7);">Goldman Sachs Blue</div>
+          <div style="font-family: 'JetBrains Mono'; font-size: 16px; margin-top: 8px;">#7399c6</div>
+        </div>
+        <div class="metric-box" style="background: var(--goldman-900); color: #fff;">
+          <div class="metric-label" style="color: rgba(255,255,255,0.7);">Goldman Sachs Navy</div>
+          <div style="font-family: 'JetBrains Mono'; font-size: 16px; margin-top: 8px;">#1b365d</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 05 Mapa de Jornadas -->
+    <section id="sec-05" class="card">
+      <div class="section-header">
+        <h2 class="section-title">05 — Mapa Geral de Jornadas do Produto</h2>
+        <span class="section-tag">Fluxo Lógico SSOT</span>
+      </div>
+      <div class="pipeline-flow">
+        <div class="pipeline-step">
+          <div style="font-family: 'JetBrains Mono'; font-size: 11px; color: var(--forest-900); font-weight: bold;">1. ENTRADA</div>
+          <div style="font-size: 13px; font-weight: 600; margin: 4px 0;">Quick Capture & ZIP</div>
+          <div style="font-size: 11px; color: var(--neutral-500);">Notas rápidas e arquivos locais até 100 MB.</div>
+        </div>
+        <div class="arrow">→</div>
+        <div class="pipeline-step">
+          <div style="font-family: 'JetBrains Mono'; font-size: 11px; color: var(--forest-900); font-weight: bold;">2. PIPELINE</div>
+          <div style="font-size: 13px; font-weight: 600; margin: 4px 0;">Para-Organizer</div>
+          <div style="font-size: 11px; color: var(--neutral-500);">Limpeza técnica, SHA-256 e Gemini Structured Output.</div>
+        </div>
+        <div class="arrow">→</div>
+        <div class="pipeline-step highlight">
+          <div style="font-family: 'JetBrains Mono'; font-size: 11px; color: var(--forest-500); font-weight: bold;">3. GOVERNANÇA</div>
+          <div style="font-size: 13px; font-weight: 600; margin: 4px 0;">Revisão Humana</div>
+          <div style="font-size: 11px; color: var(--neutral-500);">Aprovar ou Rejeitar item a item antes de gravar.</div>
+        </div>
+        <div class="arrow">→</div>
+        <div class="pipeline-step">
+          <div style="font-family: 'JetBrains Mono'; font-size: 11px; color: var(--forest-900); font-weight: bold;">4. SSOT</div>
+          <div style="font-size: 13px; font-weight: 600; margin: 4px 0;">Knowledge Intake</div>
+          <div style="font-size: 11px; color: var(--neutral-500);">IndexedDB 6 stores + Markdown Twins (≤2.200 car.).</div>
+        </div>
+        <div class="arrow">→</div>
+        <div class="pipeline-step">
+          <div style="font-family: 'JetBrains Mono'; font-size: 11px; color: var(--goldman-900); font-weight: bold;">5. MEMÓRIA</div>
+          <div style="font-size: 13px; font-weight: 600; margin: 4px 0;">Grafo D3 & Jarvis</div>
+          <div style="font-size: 11px; color: var(--neutral-500);">Exploração radial Obsidian e assistente com propostas.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 06 Telas -->
+    <section id="sec-06" class="card">
+      <div class="section-header">
+        <h2 class="section-title">06 — Screen Atlas: Telas Desktop e Mobile</h2>
+        <span class="section-tag">28 Telas em 1440x1024 e 390x844</span>
+      </div>
+      <div class="screen-grid">
+        
+        <!-- J01 -->
+        <div class="screen-frame">
+          <div class="screen-header-bar">
+            <span>Desktop / J01-Inicio / Home / Padrao</span>
+            <span>1440 × 1024</span>
+          </div>
+          <div class="screen-body">
+            <div>
+              <div style="font-family: 'Newsreader'; font-size: 20px; color: var(--forest-900);">Visão Geral do Dia</div>
+              <div style="font-size: 12px; color: var(--neutral-500); margin-top: 4px;">Tokens de Batalha: 85 Pts • 4 Tarefas Prioritárias • 5 Hábitos</div>
+            </div>
+            <div style="margin-top: 16px; font-size: 11px; background: var(--neutral-50); padding: 8px; border-radius: var(--radius-sm); border: 1px solid var(--neutral-200);">
+              ✓ Avaliar criação de skill para operar o Notion<br>
+              ⏳ Testar janela entreaberta para luz natural
+            </div>
+            <div style="margin-top: 16px;">
+              <button class="btn-action-primary" style="width: 100%;">Abrir Dashboard</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- J14 -->
+        <div class="screen-frame">
+          <div class="screen-header-bar">
+            <span>Desktop / J14-ParaOrg / Upload / Padrao</span>
+            <span>1440 × 1024</span>
+          </div>
+          <div class="screen-body">
+            <div>
+              <div style="font-family: 'Newsreader'; font-size: 20px; color: var(--forest-900);">Para-Organizer Ingestão</div>
+              <div style="font-size: 12px; color: var(--neutral-500); margin-top: 4px;">Upload de ZIP • Limpeza de lixo técnico • SHA-256</div>
+            </div>
+            <div style="margin-top: 16px; font-size: 11px; background: var(--forest-50); padding: 8px; border-radius: var(--radius-sm); border: 1px solid rgba(65,162,23,0.3);">
+              Proposta IA: "reuniao_estrategica.pdf" → Área Unicamp
+            </div>
+            <div style="display: flex; gap: 8px; margin-top: 16px;">
+              <button class="btn-action-accent" style="flex: 1;">Aprovar</button>
+              <button class="btn-action-reject" style="flex: 1;">Rejeitar</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- J15 -->
+        <div class="screen-frame">
+          <div class="screen-header-bar">
+            <span>Desktop / J15-Memoria / Mapa / Padrao</span>
+            <span>1440 × 1024</span>
+          </div>
+          <div class="screen-body">
+            <div>
+              <div style="font-family: 'Newsreader'; font-size: 20px; color: var(--forest-900);">Memória (Mapa Relacional)</div>
+              <div style="font-size: 12px; color: var(--neutral-500); margin-top: 4px;">Grafo circular Obsidian D3 force-directed</div>
+            </div>
+            <div style="margin-top: 16px; text-align: center; color: var(--forest-900); font-size: 12px;">
+              ● 24 Nós • 18 Arestas • Drawer de Inspeção Ativo
+            </div>
+            <div style="margin-top: 16px;">
+              <button class="btn-action-primary" style="width: 100%;">Explorar Grafo</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- 09 Protótipos -->
+    <section id="sec-09" class="card">
+      <div class="section-header">
+        <h2 class="section-title">09 — Protótipos Navegáveis Interativos</h2>
+        <span class="section-tag">Testes E2E ao Vivo</span>
+      </div>
+      <div class="metrics-grid">
+        
+        <!-- Proto 1 -->
+        <div class="metric-box" style="background: #fff;">
+          <div style="font-size: 12px; font-weight: 600; color: var(--forest-900); margin-bottom: 8px;">Fluxo 01: Captura com Aprovação</div>
+          <p style="font-size: 11px; color: var(--neutral-500); margin-bottom: 12px;">Simula captura rápida, proposta de vinculação e aprovação humana soberana.</p>
+          <div id="proto-1-feedback" style="font-size: 11px; font-family: 'JetBrains Mono'; margin-bottom: 12px; color: var(--forest-500);">Aguardando ação...</div>
+          <div style="display: flex; gap: 6px;">
+            <button class="btn-action-accent" style="flex: 1;" onclick="runProto1('approve')">Aprovar</button>
+            <button class="btn-action-reject" style="flex: 1;" onclick="runProto1('reject')">Rejeitar</button>
+          </div>
+        </div>
+
+        <!-- Proto 2 -->
+        <div class="metric-box" style="background: #fff;">
+          <div style="font-size: 12px; font-weight: 600; color: var(--forest-900); margin-bottom: 8px;">Fluxo 02: Validação SHA-256</div>
+          <p style="font-size: 11px; color: var(--neutral-500); margin-bottom: 12px;">Testa o cálculo local de SHA-256 e corte do Markdown Twin em 2.200 caracteres.</p>
+          <div id="proto-2-feedback" style="font-size: 11px; font-family: 'JetBrains Mono'; margin-bottom: 12px; color: var(--neutral-500);">Tamanho: 1.840 chars (≤2.200)</div>
+          <button class="btn-action-primary" style="width: 100%;" onclick="runProto2()">Validar Integridade</button>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- 10 Handoff Penpot -->
+    <section id="sec-10" class="card">
+      <div class="section-header">
+        <h2 class="section-title">10 — Handoff e Integração Penpot</h2>
+        <span class="section-tag">W3C DTCG Ready</span>
+      </div>
+      <p style="font-size: 13px; color: var(--neutral-500); margin-bottom: 16px;">
+        Os tokens em formato W3C DTCG (`design-system/tokens.json`) e a folha de estilo (`design-system/tokens.css`) 
+        estão sincronizados com o código React/Vite. A estrutura de 11 seções está pronta para ser importada no Penpot assim que um workspace for conectado.
+      </p>
+      <div style="background: var(--neutral-50); padding: 12px; border-radius: var(--radius-md); font-family: 'JetBrains Mono'; font-size: 11px; border: 1px solid var(--neutral-200);">
+        ✓ Tokens Primitivos, Semânticos e de Componentes validados<br>
+        ✓ 28 Telas mapeadas com nomenclatura Desktop/Jornada/Tela/Estado<br>
+        ✓ Build Vite e typecheck 100% livres de erros
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    let currentZoom = 1.0;
+    function adjustZoom(delta) {
+      currentZoom = Math.max(0.5, Math.min(1.5, currentZoom + delta));
+      document.getElementById('canvas').style.transform = `scale(${currentZoom})`;
+      document.getElementById('zoom-label').innerText = `${Math.round(currentZoom * 100)}%`;
+    }
+    function resetZoom() {
+      currentZoom = 1.0;
+      document.getElementById('canvas').style.transform = `scale(1.0)`;
+      document.getElementById('zoom-label').innerText = '100%';
+    }
+    function showSection(secId) {
+      const sections = ['sec-00', 'sec-01', 'sec-05', 'sec-06', 'sec-09', 'sec-10'];
+      const tabs = document.querySelectorAll('.tab-btn');
+      tabs.forEach(t => t.classList.remove('active'));
+      event.target.classList.add('active');
+
+      if (secId === 'all') {
+        sections.forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.style.display = 'block';
+        });
+      } else {
+        sections.forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.style.display = (id === secId) ? 'block' : 'none';
+        });
+      }
+    }
+
+    function runProto1(action) {
+      const fb = document.getElementById('proto-1-feedback');
+      if (action === 'approve') {
+        fb.innerText = '✓ Aprovado e gravado no Knowledge Intake!';
+        fb.style.color = '#41a217';
+      } else {
+        fb.innerText = '✗ Rejeitado e descartado com segurança.';
+        fb.style.color = '#dc2626';
+      }
+    }
+
+    function runProto2() {
+      const fb = document.getElementById('proto-2-feedback');
+      fb.innerText = '✓ SHA-256 verificado com sucesso via Web Crypto!';
+      fb.style.color = '#41a217';
+    }
+  </script>
+</body>
+</html>

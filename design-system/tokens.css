@@ -1,0 +1,106 @@
+/**
+ * Më Life OS — Design System Tokens (CSS Variables & Tailwind v4 Theme)
+ * Fusão estética: BCG (Deep Forest #0c2b15, Vivid Accent #41a217, Calm Canvas #fbfbfb) 
+ * + Goldman Sachs (Financial Blue #7399c6, Deep Navy #1b365d, Editorial Newsreader + Inter)
+ */
+
+:root {
+  /* Primitives — Forest (BCG) */
+  --me-forest-50: #f2f7f3;
+  --me-forest-100: #e2efe4;
+  --me-forest-200: #c4dfc8;
+  --me-forest-300: #97c69f;
+  --me-forest-400: #62a56f;
+  --me-forest-500: #41a217;
+  --me-forest-600: #297716;
+  --me-forest-700: #205d15;
+  --me-forest-800: #164416;
+  --me-forest-900: #0c2b15;
+  --me-forest-950: #05170b;
+
+  /* Primitives — Goldman Sachs (Financial Accents) */
+  --me-goldman-50: #f0f5fa;
+  --me-goldman-100: #dce8f4;
+  --me-goldman-200: #bcd3eb;
+  --me-goldman-300: #94b8df;
+  --me-goldman-400: #7399c6;
+  --me-goldman-500: #4f7ba8;
+  --me-goldman-600: #3c6189;
+  --me-goldman-700: #2f4d6e;
+  --me-goldman-800: #243c56;
+  --me-goldman-900: #1b365d;
+  --me-goldman-950: #0f2038;
+
+  /* Primitives — Neutrals & Canvas */
+  --me-neutral-0: #ffffff;
+  --me-neutral-50: #fbfbfb;
+  --me-neutral-100: #f4f4f4;
+  --me-neutral-200: #e8e8e8;
+  --me-neutral-300: #d9d9d9;
+  --me-neutral-400: #9e9e9e;
+  --me-neutral-500: #696969;
+  --me-neutral-600: #4a4a4a;
+  --me-neutral-700: #333333;
+  --me-neutral-800: #1f1f1f;
+  --me-neutral-900: #070707;
+
+  /* Feedback */
+  --me-status-success: #41a217;
+  --me-status-warning: #d97706;
+  --me-status-error: #dc2626;
+  --me-status-info: #7399c6;
+
+  /* Typography */
+  --me-font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --me-font-serif: 'Newsreader', 'Georgia', serif;
+  --me-font-mono: 'JetBrains Mono', Menlo, Monaco, Consolas, monospace;
+
+  /* Radius */
+  --me-radius-sm: 6px;
+  --me-radius-md: 8px;
+  --me-radius-lg: 10px;
+  --me-radius-xl: 14px;
+  --me-radius-full: 9999px;
+
+  /* Elevation Shadows (Clean UI, zero heavy shadows, zero glassmorphism) */
+  --me-shadow-subtle: 0 1px 2px rgba(0, 0, 0, 0.03);
+  --me-shadow-card: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+  --me-shadow-popover: 0 4px 12px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04);
+  --me-shadow-modal: 0 12px 32px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.04);
+
+  /* Semantics */
+  --color-bg-canvas: var(--me-neutral-50);
+  --color-bg-surface: var(--me-neutral-0);
+  --color-bg-muted: var(--me-neutral-100);
+  --color-bg-sidebar: var(--me-forest-900);
+  --color-text-primary: var(--me-neutral-900);
+  --color-text-secondary: var(--me-neutral-500);
+  --color-text-tertiary: var(--me-neutral-400);
+  --color-border-subtle: var(--me-neutral-200);
+  --color-border-strong: var(--me-neutral-300);
+  --color-brand-forest: var(--me-forest-900);
+  --color-brand-accent: var(--me-forest-500);
+  --color-brand-blue: var(--me-goldman-400);
+  --color-brand-navy: var(--me-goldman-900);
+}
+
+@theme {
+  --color-forest: var(--me-forest-900);
+  --color-forest-accent: var(--me-forest-500);
+  --color-forest-muted: var(--me-forest-50);
+  --color-goldman-blue: var(--me-goldman-400);
+  --color-goldman-navy: var(--me-goldman-900);
+  --color-nude: var(--me-neutral-50);
+  --color-nude-light: var(--me-neutral-0);
+  --color-ink: var(--me-neutral-900);
+  --color-muted-copy: var(--me-neutral-500);
+  --color-calm-border: var(--me-neutral-200);
+  
+  --font-sans: var(--me-font-sans);
+  --font-serif: var(--me-font-serif);
+  --font-mono: var(--me-font-mono);
+  
+  --radius-bcg: var(--me-radius-lg);
+  --radius-card: var(--me-radius-lg);
+  --radius-modal: var(--me-radius-xl);
+}
