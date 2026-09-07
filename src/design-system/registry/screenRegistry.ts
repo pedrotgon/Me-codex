@@ -1,9 +1,12 @@
 import { View } from '../../store';
 
+export type ScreenRenderKind = 'live' | 'captured';
+
 export interface ScreenMetadata {
   id: string;
   title: string;
   journey: string;
+  section: string;
   route: View;
   subtab?: string;
   componentName: string;
@@ -12,6 +15,14 @@ export interface ScreenMetadata {
   dataUsed: string;
   x: number;
   y: number;
+  renderKind: ScreenRenderKind;
+  viewportDesktop: boolean;
+  viewportMobile: boolean;
+  coverageStatus: 'covered' | 'pending';
+  captureMetadata?: {
+    capturedAt: string;
+    viewport: string;
+  };
 }
 
 export const SCREEN_REGISTRY: ScreenMetadata[] = [
@@ -20,6 +31,7 @@ export const SCREEN_REGISTRY: ScreenMetadata[] = [
     id: 'S01-home',
     title: 'Visão Geral (Home)',
     journey: 'Entrada & Visão Geral',
+    section: 'Início',
     route: 'home',
     componentName: 'HomeView',
     description: 'Resumo panorâmico do dia, tokens de batalha, radar de execução e hábitos.',
@@ -27,11 +39,16 @@ export const SCREEN_REGISTRY: ScreenMetadata[] = [
     dataUsed: 'tasks (hoje), habits, projects ativos, metrics',
     x: 0,
     y: 0,
+    renderKind: 'live',
+    viewportDesktop: true,
+    viewportMobile: true,
+    coverageStatus: 'covered',
   },
   {
     id: 'S02-quick-capture',
     title: 'Captura Rápida',
     journey: 'Entrada & Visão Geral',
+    section: 'Início',
     route: 'quick-capture',
     componentName: 'QuickCaptureView',
     description: 'Despejo mental rápido de notas e tarefas sem categorização prévia.',
@@ -39,6 +56,10 @@ export const SCREEN_REGISTRY: ScreenMetadata[] = [
     dataUsed: 'tasks (área Inbox)',
     x: 520,
     y: 0,
+    renderKind: 'live',
+    viewportDesktop: true,
+    viewportMobile: true,
+    coverageStatus: 'covered',
   },
 
   // Jornada 2: Agenda & Execução
@@ -46,6 +67,7 @@ export const SCREEN_REGISTRY: ScreenMetadata[] = [
     id: 'S03-take-action',
     title: 'Take Action',
     journey: 'Agenda & Execução',
+    section: 'Agenda',
     route: 'take-action',
     componentName: 'TakeActionView',
     description: 'Foco na execução das tarefas prioritárias ordenadas por urgência e naipes.',
@@ -53,11 +75,16 @@ export const SCREEN_REGISTRY: ScreenMetadata[] = [
     dataUsed: 'tasks com status not-started / in-progress',
     x: 0,
     y: 420,
+    renderKind: 'live',
+    viewportDesktop: true,
+    viewportMobile: true,
+    coverageStatus: 'covered',
   },
   {
     id: 'S04-weeks',
     title: 'Weeks (Planejador)',
     journey: 'Agenda & Execução',
+    section: 'Agenda',
     route: 'weeks',
     componentName: 'WeeksView',
     description: 'Planejamento semanal em colunas diárias com alocação e prazos.',
@@ -65,11 +92,16 @@ export const SCREEN_REGISTRY: ScreenMetadata[] = [
     dataUsed: 'tasks com executionDate e day',
     x: 520,
     y: 420,
+    renderKind: 'live',
+    viewportDesktop: true,
+    viewportMobile: true,
+    coverageStatus: 'covered',
   },
   {
     id: 'S05-journal',
     title: 'Journal (Diário)',
     journey: 'Agenda & Execução',
+    section: 'Agenda',
     route: 'journal',
     componentName: 'JournalView',
     description: 'Registro de reflexões e notas diárias com histórico em linha do tempo.',
@@ -77,6 +109,10 @@ export const SCREEN_REGISTRY: ScreenMetadata[] = [
     dataUsed: 'entradas de diário no store',
     x: 1040,
     y: 420,
+    renderKind: 'live',
+    viewportDesktop: true,
+    viewportMobile: true,
+    coverageStatus: 'covered',
   },
 
   // Jornada 3: Gestão PARA
@@ -84,6 +120,7 @@ export const SCREEN_REGISTRY: ScreenMetadata[] = [
     id: 'S06-projects',
     title: 'Projetos (Grid/Lista)',
     journey: 'Gestão PARA',
+    section: 'PARA',
     route: 'projects',
     componentName: 'ProjectsView',
     description: 'Quadro executivo de projetos com cálculo de progresso e filtros de área.',
@@ -91,11 +128,16 @@ export const SCREEN_REGISTRY: ScreenMetadata[] = [
     dataUsed: 'projects, tasks vinculadas, areas',
     x: 0,
     y: 840,
+    renderKind: 'live',
+    viewportDesktop: true,
+    viewportMobile: true,
+    coverageStatus: 'covered',
   },
   {
     id: 'S07-project-detail',
     title: 'Detalhe do Projeto',
     journey: 'Gestão PARA',
+    section: 'PARA',
     route: 'projects',
     componentName: 'ProjectDetailView',
     description: 'Gestão granular de tarefas e marcos de um projeto específico.',
@@ -103,11 +145,16 @@ export const SCREEN_REGISTRY: ScreenMetadata[] = [
     dataUsed: 'project selecionado, tasks do projeto',
     x: 520,
     y: 840,
+    renderKind: 'live',
+    viewportDesktop: true,
+    viewportMobile: true,
+    coverageStatus: 'covered',
   },
   {
     id: 'S08-tasks',
     title: 'Tarefas (Tasks)',
     journey: 'Gestão PARA',
+    section: 'PARA',
     route: 'tasks',
     componentName: 'TasksView',
     description: 'Tabela de alta densidade estilo Goldman Sachs com filtros de status.',
@@ -115,11 +162,16 @@ export const SCREEN_REGISTRY: ScreenMetadata[] = [
     dataUsed: 'tasks, areas, projects',
     x: 1040,
     y: 840,
+    renderKind: 'live',
+    viewportDesktop: true,
+    viewportMobile: true,
+    coverageStatus: 'covered',
   },
   {
     id: 'S09-areas',
     title: 'Áreas da Vida',
     journey: 'Gestão PARA',
+    section: 'PARA',
     route: 'areas',
     componentName: 'AreasView',
     description: 'Esferas contínuas de responsabilidade e manutenção pessoal.',
@@ -127,11 +179,16 @@ export const SCREEN_REGISTRY: ScreenMetadata[] = [
     dataUsed: 'areas, contagem de projetos',
     x: 0,
     y: 1260,
+    renderKind: 'live',
+    viewportDesktop: true,
+    viewportMobile: true,
+    coverageStatus: 'covered',
   },
   {
     id: 'S10-area-detail',
     title: 'Detalhe da Área',
     journey: 'Gestão PARA',
+    section: 'PARA',
     route: 'areas',
     componentName: 'AreaDetailView',
     description: 'Visão agregada de projetos e recursos vinculados a uma área.',
@@ -139,11 +196,16 @@ export const SCREEN_REGISTRY: ScreenMetadata[] = [
     dataUsed: 'area selecionada, projects, resources',
     x: 520,
     y: 1260,
+    renderKind: 'live',
+    viewportDesktop: true,
+    viewportMobile: true,
+    coverageStatus: 'covered',
   },
   {
     id: 'S11-recursos',
     title: 'Recursos',
     journey: 'Gestão PARA',
+    section: 'PARA',
     route: 'recursos',
     componentName: 'RecursosView',
     description: 'Repositório permanente de materiais de referência, apostilas e links.',
@@ -151,11 +213,16 @@ export const SCREEN_REGISTRY: ScreenMetadata[] = [
     dataUsed: 'resources, areas, projects',
     x: 1040,
     y: 1260,
+    renderKind: 'live',
+    viewportDesktop: true,
+    viewportMobile: true,
+    coverageStatus: 'covered',
   },
   {
     id: 'S12-arquivados',
     title: 'Arquivados',
     journey: 'Gestão PARA',
+    section: 'PARA',
     route: 'arquivados',
     componentName: 'ArquivadosView',
     description: 'Histórico de projetos e tarefas concluídas com restauração.',
@@ -163,6 +230,10 @@ export const SCREEN_REGISTRY: ScreenMetadata[] = [
     dataUsed: 'tasks e projetos arquivados',
     x: 1560,
     y: 1260,
+    renderKind: 'live',
+    viewportDesktop: true,
+    viewportMobile: true,
+    coverageStatus: 'covered',
   },
 
   // Jornada 4: Sistema & Rotina
@@ -170,6 +241,7 @@ export const SCREEN_REGISTRY: ScreenMetadata[] = [
     id: 'S13-inbox',
     title: 'Inbox (Pendentes)',
     journey: 'Sistema & Rotina',
+    section: 'Sistema',
     route: 'inbox',
     componentName: 'InboxView',
     description: 'Caixa de triagem para classificar ou arquivar itens não processados.',
@@ -177,11 +249,16 @@ export const SCREEN_REGISTRY: ScreenMetadata[] = [
     dataUsed: 'tasks na área Inbox',
     x: 0,
     y: 1680,
+    renderKind: 'live',
+    viewportDesktop: true,
+    viewportMobile: true,
+    coverageStatus: 'covered',
   },
   {
     id: 'S14-habitos',
     title: 'Hábitos & Rotinas',
     journey: 'Sistema & Rotina',
+    section: 'Sistema',
     route: 'habitos',
     componentName: 'HabitosView',
     description: 'Rastreamento semanal de hábitos com matriz de dias e sequências ativas.',
@@ -189,6 +266,10 @@ export const SCREEN_REGISTRY: ScreenMetadata[] = [
     dataUsed: 'habits, matriz semanal',
     x: 520,
     y: 1680,
+    renderKind: 'live',
+    viewportDesktop: true,
+    viewportMobile: true,
+    coverageStatus: 'covered',
   },
 
   // Jornada 5: Dados & Córtex
@@ -196,6 +277,7 @@ export const SCREEN_REGISTRY: ScreenMetadata[] = [
     id: 'S15-dados-cortex',
     title: 'Dados / Córtex (KI)',
     journey: 'Dados & Córtex',
+    section: 'Dados',
     route: 'dados',
     subtab: 'cortex',
     componentName: 'DadosCortex',
@@ -204,11 +286,16 @@ export const SCREEN_REGISTRY: ScreenMetadata[] = [
     dataUsed: 'nodes, relations do IndexedDB',
     x: 0,
     y: 2100,
+    renderKind: 'live',
+    viewportDesktop: true,
+    viewportMobile: true,
+    coverageStatus: 'covered',
   },
   {
     id: 'S16-dados-credentials',
     title: 'Dados / Credenciais',
     journey: 'Dados & Córtex',
+    section: 'Dados',
     route: 'dados',
     subtab: 'credentials',
     componentName: 'CredentialsView',
@@ -217,11 +304,16 @@ export const SCREEN_REGISTRY: ScreenMetadata[] = [
     dataUsed: 'credenciais locais (localStorage)',
     x: 520,
     y: 2100,
+    renderKind: 'live',
+    viewportDesktop: true,
+    viewportMobile: true,
+    coverageStatus: 'covered',
   },
   {
     id: 'S17-dados-registros',
     title: 'Dados / Log Diário',
     journey: 'Dados & Córtex',
+    section: 'Dados',
     route: 'dados',
     subtab: 'registros',
     componentName: 'DadosRegistros',
@@ -230,11 +322,16 @@ export const SCREEN_REGISTRY: ScreenMetadata[] = [
     dataUsed: 'registros do store',
     x: 1040,
     y: 2100,
+    renderKind: 'live',
+    viewportDesktop: true,
+    viewportMobile: true,
+    coverageStatus: 'covered',
   },
   {
     id: 'S18-dados-explorador',
     title: 'Dados / Explorador Raw',
     journey: 'Dados & Córtex',
+    section: 'Dados',
     route: 'dados',
     subtab: 'explorador',
     componentName: 'DadosExplorador',
@@ -243,11 +340,16 @@ export const SCREEN_REGISTRY: ScreenMetadata[] = [
     dataUsed: 'todas as coleções',
     x: 1560,
     y: 2100,
+    renderKind: 'live',
+    viewportDesktop: true,
+    viewportMobile: true,
+    coverageStatus: 'covered',
   },
   {
     id: 'S19-dados-analytics',
     title: 'Dados / BI & Analytics',
     journey: 'Dados & Córtex',
+    section: 'Dados',
     route: 'dados',
     subtab: 'analytics',
     componentName: 'DadosAnalytics',
@@ -256,18 +358,28 @@ export const SCREEN_REGISTRY: ScreenMetadata[] = [
     dataUsed: 'métricas agregadas',
     x: 2080,
     y: 2100,
+    renderKind: 'live',
+    viewportDesktop: true,
+    viewportMobile: true,
+    coverageStatus: 'covered',
   },
   {
     id: 'S20-dados-relacional',
     title: 'Dados / Relacional Raw',
     journey: 'Dados & Córtex',
+    section: 'Dados',
     route: 'dados',
+    subtab: 'relacional',
     componentName: 'DadosRelacional',
     description: 'Inspeção de relações entre entidades no modelo relacional bruto.',
     states: ['Padrão', 'Vazio'],
     dataUsed: 'tabelas do store',
     x: 2600,
     y: 2100,
+    renderKind: 'live',
+    viewportDesktop: true,
+    viewportMobile: true,
+    coverageStatus: 'covered',
   },
 
   // Jornada 6: Para-Organizer
@@ -275,6 +387,7 @@ export const SCREEN_REGISTRY: ScreenMetadata[] = [
     id: 'S21-para-overview',
     title: 'Para-Organizer / Visão Geral',
     journey: 'Para-Organizer',
+    section: 'Para-Organizer',
     route: 'para-organizer',
     subtab: 'overview',
     componentName: 'ParaOrganizerSkillView',
@@ -283,11 +396,16 @@ export const SCREEN_REGISTRY: ScreenMetadata[] = [
     dataUsed: 'metadados da skill',
     x: 0,
     y: 2520,
+    renderKind: 'live',
+    viewportDesktop: true,
+    viewportMobile: true,
+    coverageStatus: 'covered',
   },
   {
     id: 'S22-para-content',
     title: 'Para-Organizer / Conteúdo',
     journey: 'Para-Organizer',
+    section: 'Para-Organizer',
     route: 'para-organizer',
     subtab: 'content',
     componentName: 'ParaOrganizerSkillView',
@@ -296,11 +414,16 @@ export const SCREEN_REGISTRY: ScreenMetadata[] = [
     dataUsed: 'textos de documentação',
     x: 520,
     y: 2520,
+    renderKind: 'live',
+    viewportDesktop: true,
+    viewportMobile: true,
+    coverageStatus: 'covered',
   },
   {
     id: 'S23-para-upload',
     title: 'Para-Organizer / Ingestão & Pipeline',
     journey: 'Para-Organizer',
+    section: 'Para-Organizer',
     route: 'para-organizer',
     subtab: 'upload',
     componentName: 'DadosIngestao',
@@ -309,6 +432,10 @@ export const SCREEN_REGISTRY: ScreenMetadata[] = [
     dataUsed: 'arquivos locais, ZIP, Web Crypto, Gemini',
     x: 1040,
     y: 2520,
+    renderKind: 'live',
+    viewportDesktop: true,
+    viewportMobile: true,
+    coverageStatus: 'covered',
   },
 
   // Jornada 7: Memória Relacional
@@ -316,6 +443,7 @@ export const SCREEN_REGISTRY: ScreenMetadata[] = [
     id: 'S24-memoria-mapa',
     title: 'Memória / Mapa Relacional (D3)',
     journey: 'Memória Relacional',
+    section: 'Memória',
     route: 'memoria',
     subtab: 'mapa',
     componentName: 'MemoriaMapa',
@@ -324,11 +452,16 @@ export const SCREEN_REGISTRY: ScreenMetadata[] = [
     dataUsed: 'nodes, relations do KI',
     x: 0,
     y: 2940,
+    renderKind: 'live',
+    viewportDesktop: true,
+    viewportMobile: true,
+    coverageStatus: 'covered',
   },
   {
     id: 'S25-memoria-nos',
     title: 'Memória / Nós',
     journey: 'Memória Relacional',
+    section: 'Memória',
     route: 'memoria',
     subtab: 'nos',
     componentName: 'MemoriaNos',
@@ -337,11 +470,16 @@ export const SCREEN_REGISTRY: ScreenMetadata[] = [
     dataUsed: 'nodes do KI',
     x: 520,
     y: 2940,
+    renderKind: 'live',
+    viewportDesktop: true,
+    viewportMobile: true,
+    coverageStatus: 'covered',
   },
   {
     id: 'S26-memoria-relacoes',
     title: 'Memória / Relações',
     journey: 'Memória Relacional',
+    section: 'Memória',
     route: 'memoria',
     subtab: 'relacoes',
     componentName: 'MemoriaRelacoes',
@@ -350,11 +488,16 @@ export const SCREEN_REGISTRY: ScreenMetadata[] = [
     dataUsed: 'relations do KI',
     x: 1040,
     y: 2940,
+    renderKind: 'live',
+    viewportDesktop: true,
+    viewportMobile: true,
+    coverageStatus: 'covered',
   },
   {
     id: 'S27-memoria-orfaos',
     title: 'Memória / Órfãos',
     journey: 'Memória Relacional',
+    section: 'Memória',
     route: 'memoria',
     subtab: 'orfaos',
     componentName: 'MemoriaOrfaos',
@@ -363,6 +506,10 @@ export const SCREEN_REGISTRY: ScreenMetadata[] = [
     dataUsed: 'nós com grau de conexão zero',
     x: 1560,
     y: 2940,
+    renderKind: 'live',
+    viewportDesktop: true,
+    viewportMobile: true,
+    coverageStatus: 'covered',
   },
 
   // Jornada 8: Assistência IA
@@ -370,6 +517,7 @@ export const SCREEN_REGISTRY: ScreenMetadata[] = [
     id: 'S28-jarvis',
     title: 'Assistente Jarvis',
     journey: 'Assistência IA',
+    section: 'Jarvis',
     route: 'home',
     componentName: 'JarvisChat',
     description: 'Chat consultivo com modelo Gemini e cartões de proposta com aprovação humana.',
@@ -377,5 +525,17 @@ export const SCREEN_REGISTRY: ScreenMetadata[] = [
     dataUsed: 'chat history, Gemini API, store context',
     x: 0,
     y: 3360,
+    renderKind: 'live',
+    viewportDesktop: true,
+    viewportMobile: true,
+    coverageStatus: 'covered',
   },
 ];
+
+// Funções Canônicas de Cálculo (Sem Valores Hardcoded)
+export const getScreenCount = (): number => SCREEN_REGISTRY.length;
+export const getDesktopFrameCount = (): number => SCREEN_REGISTRY.filter(s => s.viewportDesktop).length;
+export const getMobileFrameCount = (): number => SCREEN_REGISTRY.filter(s => s.viewportMobile).length;
+export const getTotalFrameCount = (): number => getDesktopFrameCount() + getMobileFrameCount();
+export const getJourneys = (): string[] => Array.from(new Set(SCREEN_REGISTRY.map(s => s.journey)));
+export const getScreenById = (id: string): ScreenMetadata | undefined => SCREEN_REGISTRY.find(s => s.id === id);
