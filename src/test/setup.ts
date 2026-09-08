@@ -1,6 +1,12 @@
 // Global setup for Vitest test environment
 import '@testing-library/jest-dom/vitest';
 
+declare global {
+  interface SVGElement {
+    getBBox?(): DOMRect;
+  }
+}
+
 if (typeof window !== 'undefined') {
   // ResizeObserver mock
   if (!window.ResizeObserver) {
