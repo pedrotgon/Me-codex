@@ -235,95 +235,100 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({ onNavigateToView
       />
 
       {/* Barra de Ferramentas Flutuante Superior */}
-      <div className="absolute top-4 left-4 right-4 z-20 flex flex-wrap items-center justify-between gap-3 p-3 bg-white rounded-[12px] border border-[#e8e8e8] shadow-sm canvas-ui-control">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-[8px] bg-[#0c2b15] text-white flex items-center justify-center font-serif text-base font-bold shadow-xs">
-            Më
+      <div className="absolute top-2 sm:top-4 left-2 sm:left-4 right-2 sm:right-4 z-20 flex flex-col md:flex-row md:items-center justify-between gap-2.5 sm:gap-3 p-2.5 sm:p-3 bg-white rounded-[10px] sm:rounded-[12px] border border-[#e8e8e8] shadow-sm canvas-ui-control">
+        {/* Linha 1: Marca, Título e Controles de Zoom */}
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-[6px] sm:rounded-[8px] bg-[#0c2b15] text-white flex items-center justify-center font-serif text-sm sm:text-base font-bold shadow-xs shrink-0">
+              Më
+            </div>
+            <div>
+              <h1 className="text-xs sm:text-sm font-semibold text-[#070707] leading-tight">
+                Canvas de Telas
+              </h1>
+              <p className="text-[10px] sm:text-[11px] text-[#696969] truncate">
+                Quadro visual: {getScreenCount()} telas • {getTotalFrameCount()} frames (Desktop + Mobile)
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-sm font-semibold text-[#070707] leading-tight">
-              Screen Atlas — Infinite Canvas Workspace
-            </h1>
-            <p className="text-[11px] text-[#696969]">
-              Quadro branco espacial 2D: {getScreenCount()} telas • {getTotalFrameCount()} frames-base (Desktop + Mobile)
-            </p>
+
+          {/* Controles de Zoom Compactos e Confortáveis */}
+          <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+            <Button variant="secondary" size="sm" onClick={fitAll} title="Enquadrar Todas as Telas" className="min-h-[38px] sm:min-h-[32px] px-2.5 text-xs">
+              <Maximize2 className="w-3.5 h-3.5" /> Fit All
+            </Button>
+            <Button variant="secondary" size="sm" onClick={fitSelection} title="Focar na Tela Selecionada" className="hidden sm:inline-flex min-h-[32px] px-2 text-xs">
+              <Target className="w-3.5 h-3.5" /> Focar
+            </Button>
+            <div className="flex items-center bg-[#f4f4f4] rounded-[6px] border border-[#e8e8e8] px-0.5">
+              <button onClick={zoomOut} className="p-1.5 sm:p-1 hover:text-[#0c2b15] text-[#696969] min-w-[32px] min-h-[32px] flex items-center justify-center" aria-label="Diminuir zoom" title="Diminuir zoom">
+                <ZoomOut className="w-3.5 h-3.5" />
+              </button>
+              <span 
+                className="font-mono text-[11px] sm:text-xs px-1.5 min-w-[42px] sm:min-w-[48px] text-center"
+                data-testid="zoom-indicator"
+              >
+                {Math.round(zoom * 100)}%
+              </span>
+              <button onClick={zoomIn} className="p-1.5 sm:p-1 hover:text-[#0c2b15] text-[#696969] min-w-[32px] min-h-[32px] flex items-center justify-center" aria-label="Aumentar zoom" title="Aumentar zoom">
+                <ZoomIn className="w-3.5 h-3.5" />
+              </button>
+            </div>
+            <Button variant="secondary" size="sm" onClick={resetView} title="Resetar Visualização" className="min-h-[38px] sm:min-h-[32px] px-2">
+              <RotateCcw className="w-3.5 h-3.5" />
+            </Button>
           </div>
         </div>
 
-        {/* Filtros e Busca */}
-        <div className="flex items-center gap-2">
-          {/* Busca */}
-          <div className="relative">
-            <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-[#696969]" />
-            <input
-              type="text"
-              placeholder="Buscar tela..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-8 pr-3 py-1.5 text-xs bg-[#fbfbfb] border border-[#e8e8e8] rounded-[6px] focus:outline-none focus:ring-1 focus:ring-[#7399c6] w-36 lg:w-48"
-            />
-          </div>
-
-          {/* Filtro por Jornada */}
-          <select
-            value={journeyFilter}
-            onChange={(e) => setJourneyFilter(e.target.value)}
-            className="text-xs bg-[#fbfbfb] border border-[#e8e8e8] rounded-[6px] px-2 py-1.5 text-[#070707]"
-          >
-            <option value="all">Todas as Jornadas ({getScreenCount()})</option>
-            {journeys.map(j => (
-              <option key={j} value={j}>{j}</option>
-            ))}
-          </select>
-
+        {/* Linha 2: Filtros de Viewport, Busca e Jornada */}
+        <div className="flex flex-wrap items-center justify-between md:justify-end gap-2 pt-2 md:pt-0 border-t border-[#f0f0f0] md:border-0">
           {/* Filtro de Viewport */}
           <div className="flex items-center bg-[#f4f4f4] p-0.5 rounded-[6px] border border-[#e8e8e8]">
             <button
               onClick={() => setViewportFilter('all')}
-              className={`px-2 py-1 text-xs font-medium rounded-[4px] transition ${viewportFilter === 'all' ? 'bg-white text-[#070707] shadow-2xs' : 'text-[#696969]'}`}
+              className={`px-2.5 py-1.5 sm:py-1 text-xs font-medium rounded-[4px] min-h-[36px] sm:min-h-[28px] transition ${viewportFilter === 'all' ? 'bg-white text-[#070707] shadow-2xs' : 'text-[#696969]'}`}
             >
               Todos ({getTotalFrameCount()})
             </button>
             <button
               onClick={() => setViewportFilter('desktop')}
-              className={`flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-[4px] transition ${viewportFilter === 'desktop' ? 'bg-white text-[#070707] shadow-2xs' : 'text-[#696969]'}`}
+              className={`flex items-center gap-1 px-2.5 py-1.5 sm:py-1 text-xs font-medium rounded-[4px] min-h-[36px] sm:min-h-[28px] transition ${viewportFilter === 'desktop' ? 'bg-white text-[#070707] shadow-2xs' : 'text-[#696969]'}`}
             >
               <Monitor className="w-3 h-3" /> Desktop ({getDesktopFrameCount()})
             </button>
             <button
               onClick={() => setViewportFilter('mobile')}
-              className={`flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-[4px] transition ${viewportFilter === 'mobile' ? 'bg-white text-[#070707] shadow-2xs' : 'text-[#696969]'}`}
+              className={`flex items-center gap-1 px-2.5 py-1.5 sm:py-1 text-xs font-medium rounded-[4px] min-h-[36px] sm:min-h-[28px] transition ${viewportFilter === 'mobile' ? 'bg-white text-[#070707] shadow-2xs' : 'text-[#696969]'}`}
             >
               <Smartphone className="w-3 h-3" /> Mobile ({getMobileFrameCount()})
             </button>
           </div>
-        </div>
 
-        {/* Controles de Zoom Espacial */}
-        <div className="flex items-center gap-1.5">
-          <Button variant="secondary" size="sm" onClick={fitAll} title="Enquadrar Todas as Telas">
-            <Maximize2 className="w-3.5 h-3.5" /> Fit All
-          </Button>
-          <Button variant="secondary" size="sm" onClick={fitSelection} title="Focar na Tela Selecionada">
-            <Target className="w-3.5 h-3.5" /> Focar
-          </Button>
-          <div className="flex items-center bg-[#f4f4f4] rounded-[6px] border border-[#e8e8e8] px-1">
-            <button onClick={zoomOut} className="p-1 hover:text-[#0c2b15] text-[#696969]" aria-label="Diminuir zoom" title="Diminuir zoom">
-              <ZoomOut className="w-3.5 h-3.5" />
-            </button>
-            <span 
-              className="font-mono text-xs px-2 min-w-[48px] text-center"
-              data-testid="zoom-indicator"
+          <div className="flex items-center gap-2 flex-1 sm:flex-none justify-end">
+            {/* Busca */}
+            <div className="relative flex-1 sm:flex-none min-w-[120px]">
+              <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-[#696969]" />
+              <input
+                type="text"
+                placeholder="Buscar tela..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full sm:w-36 lg:w-44 pl-8 pr-3 py-1.5 text-xs bg-[#fbfbfb] border border-[#e8e8e8] rounded-[6px] focus:outline-none focus:ring-1 focus:ring-[#7399c6] min-h-[36px] sm:min-h-[28px]"
+              />
+            </div>
+
+            {/* Filtro por Jornada */}
+            <select
+              value={journeyFilter}
+              onChange={(e) => setJourneyFilter(e.target.value)}
+              className="text-xs bg-[#fbfbfb] border border-[#e8e8e8] rounded-[6px] px-2 py-1.5 text-[#070707] min-h-[36px] sm:min-h-[28px] max-w-[130px] sm:max-w-none truncate"
             >
-              {Math.round(zoom * 100)}%
-            </span>
-            <button onClick={zoomIn} className="p-1 hover:text-[#0c2b15] text-[#696969]" aria-label="Aumentar zoom" title="Aumentar zoom">
-              <ZoomIn className="w-3.5 h-3.5" />
-            </button>
+              <option value="all">Jornadas ({getScreenCount()})</option>
+              {journeys.map(j => (
+                <option key={j} value={j}>{j}</option>
+              ))}
+            </select>
           </div>
-          <Button variant="secondary" size="sm" onClick={resetView} title="Resetar Visualização">
-            <RotateCcw className="w-3.5 h-3.5" />
-          </Button>
         </div>
       </div>
 
@@ -433,27 +438,30 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({ onNavigateToView
         </div>
       </div>
 
-      {/* Painel Lateral de Inspeção de Tela (quando um frame está selecionado) */}
+      {/* Painel Lateral / Bottom Sheet de Inspeção de Tela (quando um frame está selecionado) */}
       {selectedScreen && (
-        <aside className="absolute right-4 top-20 bottom-4 w-80 lg:w-96 bg-white rounded-[14px] border border-[#e8e8e8] shadow-lg z-20 flex flex-col p-5 overflow-y-auto canvas-ui-control">
-          <div className="flex items-center justify-between pb-3 border-b border-[#e8e8e8] mb-4">
+        <aside className="fixed inset-x-0 bottom-0 max-h-[75vh] w-full rounded-t-[20px] rounded-b-none border-t border-[#e8e8e8] shadow-2xl p-4 sm:p-5 z-40 sm:absolute sm:inset-auto sm:right-4 sm:top-20 sm:bottom-4 sm:w-80 lg:sm:w-96 sm:rounded-[14px] sm:border sm:shadow-lg bg-white flex flex-col overflow-y-auto canvas-ui-control">
+          {/* Puxador Visual Mobile */}
+          <div className="sm:hidden w-10 h-1 rounded-full bg-[#d0d0d0] mx-auto mb-2 shrink-0" />
+
+          <div className="flex items-center justify-between pb-3 border-b border-[#e8e8e8] mb-3 sm:mb-4 shrink-0">
             <div>
               <span className="text-[10px] font-mono uppercase text-[#696969]">Inspeção de Tela</span>
-              <h3 className="text-base font-serif text-[#0c2b15] font-semibold">{selectedScreen.title}</h3>
+              <h3 className="text-sm sm:text-base font-serif text-[#0c2b15] font-semibold">{selectedScreen.title}</h3>
             </div>
             <button 
               onClick={() => setSelectedScreenId(null)}
-              className="p-1 rounded-[6px] text-[#696969] hover:text-[#070707] hover:bg-[#f4f4f4]"
+              className="p-2 sm:p-1 rounded-[6px] text-[#696969] hover:text-[#070707] hover:bg-[#f4f4f4] min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0"
               aria-label="Fechar Inspeção"
             >
-              <X className="w-4 h-4" />
+              <X className="w-5 h-5 sm:w-4 sm:h-4" />
             </button>
           </div>
 
-          <div className="space-y-4 text-xs font-sans flex-1">
+          <div className="space-y-3 sm:space-y-4 text-xs font-sans flex-1">
             <div>
               <span className="font-mono text-[10px] uppercase text-[#696969]">ID Canônico & Rota:</span>
-              <div className="flex items-center gap-2 mt-1">
+              <div className="flex flex-wrap items-center gap-1.5 mt-1">
                 <Badge variant="forest">{selectedScreen.id}</Badge>
                 <Badge variant="goldman">rota: {selectedScreen.route}</Badge>
                 {selectedScreen.subtab && <Badge variant="neutral">subaba: {selectedScreen.subtab}</Badge>}
@@ -494,12 +502,12 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({ onNavigateToView
             </div>
           </div>
 
-          <div className="pt-4 border-t border-[#e8e8e8] mt-4">
+          <div className="pt-3 border-t border-[#e8e8e8] mt-3 shrink-0">
             <Button
               variant="primary"
               size="md"
-              className="w-full"
-              icon={<ExternalLink className="w-3.5 h-3.5" />}
+              className="w-full min-h-[44px]"
+              icon={<ExternalLink className="w-4 h-4" />}
               onClick={() => onNavigateToView(selectedScreen.route)}
             >
               Abrir Tela no Më Life OS
@@ -509,7 +517,7 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({ onNavigateToView
       )}
 
       {/* Indicador de Atalhos / Dica no canto inferior */}
-      <div className="absolute bottom-4 left-4 z-10 px-3 py-1.5 bg-white rounded-[8px] border border-[#e8e8e8] text-[11px] font-mono text-[#696969] shadow-2xs pointer-events-none">
+      <div className="hidden sm:block absolute bottom-4 left-4 z-10 px-3 py-1.5 bg-white rounded-[8px] border border-[#e8e8e8] text-[11px] font-mono text-[#696969] shadow-2xs pointer-events-none">
         Arraste para mover o canvas • Use o scroll do mouse ou botões para Zoom
       </div>
 

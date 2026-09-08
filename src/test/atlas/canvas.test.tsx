@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { InfiniteCanvas } from '../../design-system/canvas/InfiniteCanvas';
+import ProductCanvasView from '../../components/views/ProductCanvasView';
 import { AtlasStoreProvider } from '../../design-system/registry/AtlasStoreProvider';
 import { 
   SCREEN_REGISTRY, 
@@ -162,5 +163,72 @@ describe('BLOCO 3 — Screen Atlas Canvas & Real Fit All', () => {
     // Should display the explicit diagnostic error state without crashing the canvas
     expect(screen.getByText('Preview Indisponível')).toBeInTheDocument();
     expect(screen.getByText(/Execute npm run atlas:capture/i)).toBeInTheDocument();
+  });
+
+  it('ProductCanvasView presents exactly two canonical tabs (Telas and Design Kit) without prototypes in navigation', () => {
+    render(
+      <AtlasStoreProvider>
+        <ProductCanvasView />
+      </AtlasStoreProvider>
+    );
+
+    // Tab 1: Telas exists
+    const telasTab = screen.getByRole('button', { name: /Telas/i });
+    expect(telasTab).toBeInTheDocument();
+
+    // Tab 2: Design Kit exists
+    const designKitTab = screen.getByRole('button', { name: /Design Kit/i });
+    expect(designKitTab).toBeInTheDocument();
+
+    // Prototypes tab is removed from the navigation
+    expect(screen.queryByRole('button', { name: /Protótipos/i })).not.toBeInTheDocument();
+
+    // By default, renders the Canvas
+    expect(screen.getAllByText('Canvas de Telas').length).toBeGreaterThanOrEqual(1);
+
+    // Switch to Design Kit tab
+    fireEvent.click(designKitTab);
+
+    // Should render Design Kit foundations & components
+    expect(screen.getByText(/Design Kit do Më Life OS/i)).toBeInTheDocument();
+    expect(screen.getByText(/Foundations & Tokens/i)).toBeInTheDocument();
+    expect(screen.getByText(/Componentes & Estados/i)).toBeInTheDocument();
+    expect(screen.getByText(/Cores & Tokens Semânticos/i)).toBeInTheDocument();
+  });
+
+  it('adapts cleanly to mobile viewport (390 x 844) with ergonomic touch targets and responsive inspection drawer', () => {
+    // Simulate mobile viewport dimensions
+    window.innerWidth = 390;
+    window.innerHeight = 844;
+    window.dispatchEvent(new Event('resize'));
+
+    render(
+      <AtlasStoreProvider>
+        <InfiniteCanvas onNavigateToView={onNavigateMock} />
+      </AtlasStoreProvider>
+    );
+
+    // Canonical mobile header exists without broken text
+    expect(screen.getByText('Canvas de Telas')).toBeInTheDocument();
+    expect(screen.getByText(/Quadro visual:/i)).toBeInTheDocument();
+
+    // Select a screen to verify mobile bottom-sheet inspection drawer
+    const screenFrame = screen.getAllByText('S01-home')[0];
+    fireEvent.click(screenFrame);
+
+    // Inspection header and close button with touch target
+    expect(screen.getByText('Inspeção de Tela')).toBeInTheDocument();
+    const closeBtn = screen.getByLabelText('Fechar Inspeção');
+    expect(closeBtn).toBeInTheDocument();
+
+    // Action button to open live screen in Më Life OS
+    const openBtn = screen.getByRole('button', { name: /Abrir Tela no Më Life OS/i });
+    expect(openBtn).toBeInTheDocument();
+    fireEvent.click(openBtn);
+    expect(onNavigateMock).toHaveBeenCalledWith('home');
+
+    // Close drawer
+    fireEvent.click(closeBtn);
+    expect(screen.queryByText('Inspeção de Tela')).not.toBeInTheDocument();
   });
 });

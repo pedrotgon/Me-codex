@@ -9,3 +9,4 @@ export * from './Alert';
 export * from './Progress';
 export * from './States';
 export * from './ScreenFrame';
+export * from './DesignKitView';
