@@ -144,4 +144,23 @@ describe('BLOCO 3 — Screen Atlas Canvas & Real Fit All', () => {
 
     expect(screen.getByText('65%')).toBeInTheDocument();
   });
+
+  it('handles image loading failures gracefully displaying diagnostic Preview Indisponível error state', () => {
+    render(
+      <AtlasStoreProvider>
+        <InfiniteCanvas onNavigateToView={onNavigateMock} />
+      </AtlasStoreProvider>
+    );
+
+    // Find all preview images
+    const previewImages = screen.getAllByRole('img');
+    expect(previewImages.length).toBeGreaterThan(0);
+
+    // Simulate load error on the first image (missing file, html fallback or corrupt bytes)
+    fireEvent.error(previewImages[0]);
+
+    // Should display the explicit diagnostic error state without crashing the canvas
+    expect(screen.getByText('Preview Indisponível')).toBeInTheDocument();
+    expect(screen.getByText(/Execute npm run atlas:capture/i)).toBeInTheDocument();
+  });
 });
