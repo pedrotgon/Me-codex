@@ -30,7 +30,8 @@ import {
   Clock,
   Flame,
   FileCode2,
-  Table as TableIcon
+  Table as TableIcon,
+  AlertCircle
 } from 'lucide-react';
 import { 
   SCREEN_REGISTRY, 
@@ -41,6 +42,7 @@ import {
   getTotalFrameCount 
 } from '../registry/screenRegistry';
 import { AtlasScreenRenderer } from '../registry/AtlasScreenRenderer';
+import { calculateFitAll } from './fitAllCalculator';
 import { DEMO_TASKS, DEMO_PROJECTS, DEMO_AREAS, DEMO_RESOURCES, DEMO_HABITS, DEMO_NODES, DEMO_RELATIONS } from '../registry/fixtures';
 import { Button } from '../components/Button';
 import { Badge } from '../components/Badge';
@@ -129,7 +131,7 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({ onNavigateToView
     setZoom(0.65);
   };
 
-  // Fit All Real: calcula limites reais do canvas e do conteúdo
+  // Fit All Real: calcula limites matemáticos reais do canvas e do conteúdo
   const fitAll = useCallback(() => {
     if (!containerRef.current) return;
 
@@ -146,23 +148,16 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({ onNavigateToView
       if (sh > 100) contentHeight = sh;
     }
 
-    const margin = 48;
-    const availableW = Math.max(containerWidth - margin * 2, 200);
-    const availableH = Math.max(containerHeight - margin * 2, 200);
-
-    const scaleX = availableW / contentWidth;
-    const scaleY = availableH / contentHeight;
-    const calculatedZoom = Math.min(scaleX, scaleY);
-
-    const clampedZoom = Math.min(1.5, Math.max(0.18, Number(calculatedZoom.toFixed(2))));
-    const calculatedPanX = Math.round((containerWidth - contentWidth * clampedZoom) / 2);
-    const calculatedPanY = Math.max(margin, Math.round((containerHeight - contentHeight * clampedZoom) / 2));
-
-    setZoom(clampedZoom);
-    setPan({
-      x: calculatedPanX > 0 ? calculatedPanX : margin,
-      y: calculatedPanY > 0 ? calculatedPanY : margin,
+    const { zoom: calculatedZoom, pan: calculatedPan } = calculateFitAll({
+      containerWidth,
+      containerHeight,
+      contentWidth,
+      contentHeight,
+      margin: 48,
     });
+
+    setZoom(calculatedZoom);
+    setPan(calculatedPan);
   }, []);
 
   const fitSelection = () => {
@@ -171,10 +166,38 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({ onNavigateToView
     setZoom(0.7);
   };
 
-  // Renderizador Fiel de Previews Leves e Views Live Sob Demanda (Zero fallback genérico)
-  const renderScreenContent = (screen: ScreenMetadata, viewport: 'desktop' | 'mobile', isSelected: boolean) => {
+  // Componente de Preview Leve com Detecção Explícita de Erro
+  const ScreenPreviewFrame: React.FC<{
+    screen: ScreenMetadata;
+    viewport: 'desktop' | 'mobile';
+    isSelected: boolean;
+  }> = ({ screen, viewport, isSelected }) => {
+    const [loadError, setLoadError] = useState(false);
+
+    // Se selecionada, renderiza a view React real live completa
     if (isSelected) {
       return <AtlasScreenRenderer screenId={screen.id} viewport={viewport} />;
+    }
+
+    // Estado explícito de erro para previews ausentes, corrompidos ou fallback HTML
+    if (loadError) {
+      return (
+        <div 
+          className="w-full h-full p-4 bg-[#fff5f5] border border-dashed border-[#e53e3e]/40 rounded-[8px] flex flex-col items-center justify-center text-center select-none"
+          data-testid={`preview-error-${screen.id}-${viewport}`}
+        >
+          <div className="w-8 h-8 rounded-full bg-[#e53e3e]/10 text-[#e53e3e] flex items-center justify-center mb-1.5">
+            <AlertCircle className="w-4 h-4" />
+          </div>
+          <span className="text-xs font-semibold text-[#e53e3e]">Preview Indisponível</span>
+          <span className="text-[10px] font-mono text-[#696969] mt-0.5">
+            {screen.id} • {viewport}
+          </span>
+          <span className="text-[9px] text-[#888] mt-1">
+            Execute npm run atlas:capture
+          </span>
+        </div>
+      );
     }
 
     return (
@@ -184,9 +207,18 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({ onNavigateToView
           alt={`${screen.title} - ${viewport}`}
           className="w-full h-full object-cover object-top select-none"
           loading="lazy"
+          onError={() => {
+            console.warn(`[ScreenAtlas] Failed to load preview: /previews/${screen.id}-${viewport}.png`);
+            setLoadError(true);
+          }}
         />
       </div>
     );
+  };
+
+  // Renderizador Fiel de Previews Leves e Views Live Sob Demanda (Zero fallback genérico)
+  const renderScreenContent = (screen: ScreenMetadata, viewport: 'desktop' | 'mobile', isSelected: boolean) => {
+    return <ScreenPreviewFrame screen={screen} viewport={viewport} isSelected={isSelected} />;
   };
 
   return (

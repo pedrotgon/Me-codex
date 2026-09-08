@@ -23,6 +23,7 @@ import DadosAnalyticsCompleto from './components/views/DadosAnalyticsCompleto';
 import ParaOrganizerSkillView from './components/views/ParaOrganizerSkillView';
 import MemoriaView from './components/views/MemoriaView';
 import ProductCanvasView from './components/views/ProductCanvasView';
+import { AtlasScreenRenderer } from './design-system/registry/AtlasScreenRenderer';
 
 function AppContent() {
   const { currentView } = useStore();
@@ -67,7 +68,39 @@ function AppContent() {
   );
 }
 
+function CaptureHarnessView({ screenId, viewport }: { screenId: string; viewport: 'desktop' | 'mobile' }) {
+  const isMobile = viewport === 'mobile';
+  const width = isMobile ? 390 : 1440;
+  const height = isMobile ? 844 : 1024;
+
+  return (
+    <div
+      id="capture-harness-root"
+      style={{
+        width: `${width}px`,
+        height: `${height}px`,
+        maxWidth: `${width}px`,
+        maxHeight: `${height}px`,
+        overflow: 'hidden',
+        backgroundColor: '#fbfbfb',
+        position: 'relative',
+      }}
+    >
+      <AtlasScreenRenderer screenId={screenId} viewport={viewport} />
+    </div>
+  );
+}
+
 export default function App() {
+  const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+  const isHarness = searchParams?.get('harness') === 'true';
+  const screenId = searchParams?.get('screenId');
+  const viewport = (searchParams?.get('viewport') as 'desktop' | 'mobile') || 'desktop';
+
+  if (isHarness && screenId) {
+    return <CaptureHarnessView screenId={screenId} viewport={viewport} />;
+  }
+
   return (
     <StoreProvider>
       <AppContent />
